@@ -4,7 +4,7 @@ import { getEnvApiKey } from "../src/env-api-keys.ts";
 import type { Api, KnownProvider, Model, ProviderStreamOptions } from "../src/types.ts";
 import { resolveApiKey } from "./oauth.ts";
 
-const githubCopilotToken = await resolveApiKey("github-copilot");
+const _githubCopilotToken = await resolveApiKey("github-copilot");
 
 interface AnthropicLongCacheRetentionE2ECase {
 	name: string;
@@ -14,9 +14,6 @@ interface AnthropicLongCacheRetentionE2ECase {
 }
 
 function getE2EApiKey(provider: KnownProvider): string | undefined {
-	if (provider === "github-copilot") {
-		return githubCopilotToken;
-	}
 	return getEnvApiKey(provider);
 }
 

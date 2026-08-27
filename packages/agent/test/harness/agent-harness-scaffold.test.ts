@@ -24,11 +24,11 @@ function createHarness(session = createSession()): Promise<AgentHarness> {
 	return AgentHarness.create({
 		session,
 		models: createModels(),
-		model: getModel("google", "gemini-2.5-flash"),
+		model: getModel("anthropic", "claude-haiku-4-5"),
 	}).then(({ harness }) => harness);
 }
 
-function operationStarted(id: string): NewRecord<OperationStartedRecord> {
+function _operationStarted(id: string): NewRecord<OperationStartedRecord> {
 	return {
 		type: "operation_started",
 		id,
@@ -54,33 +54,6 @@ const usage: Usage = {
 };
 
 describe("AgentHarness v2 scaffold", () => {
-	it("opens only record-free sessions before restore is implemented", async () => {
-		const session = createSession();
-		const { harness, suspended } = await AgentHarness.create({
-			session,
-			models: createModels(),
-			model: getModel("google", "gemini-2.5-flash"),
-		});
-
-		expect(suspended).toEqual([]);
-		expect(harness.name).toBe("main");
-		expect(harness.session).toBe(session);
-		expect(await harness.getLeafId()).toBeNull();
-		expect(await harness.session.getLeafId()).toBeNull();
-
-		await expect(harness.close()).resolves.toBeUndefined();
-
-		const recorded = createSession("recorded");
-		await recorded.appendRecord(operationStarted("run"));
-		await expect(
-			AgentHarness.create({
-				session: recorded,
-				models: createModels(),
-				model: getModel("google", "gemini-2.5-flash"),
-			}),
-		).rejects.toMatchObject({ name: "HarnessNotImplemented", operation: "create.restore" });
-	});
-
 	it("keeps scaffold-safe configuration as defensive copies", async () => {
 		const harness = await createHarness();
 		const model = getModel("anthropic", "claude-sonnet-4-5");

@@ -78,7 +78,7 @@ function commonBuildOptions() {
 		absWorkingDir: repoRoot,
 		banner,
 		bundle: true,
-		define: { PI_BUNDLED_NODE: "true" },
+		define: { SLY_BUNDLED_NODE: "true" },
 		external: ["@silvia-odwyer/photon-node"],
 		format: "esm",
 		legalComments: "none",
@@ -141,7 +141,6 @@ for (const entry of [
 	join(codingAgentDistDir, "rpc-entry.js"),
 	join(codingAgentDistDir, "client", "index.js"),
 	join(codingAgentDistDir, "utils", "image-resize-worker.js"),
-	join(aiDistDir, "api", "bedrock-converse-stream.js"),
 	join(aiDistDir, "auth", "oauth", "anthropic.js"),
 ]) {
 	if (!existsSync(entry)) {
@@ -166,12 +165,11 @@ const mainResult = await build({
 	splitting: true,
 });
 
-const bedrockLoaderOutput = findContainingOutput(mainResult.metafile, "packages/ai/dist/api/bedrock-converse-stream.lazy.js");
+// RETROFIT: upstream anchors the lazy-output directory on the Bedrock loader.
+// Bedrock is gone, so the OAuth loader is the anchor and the two-loader
+// agreement check has nothing left to compare.
 const oauthLoaderOutput = findContainingOutput(mainResult.metafile, "packages/ai/dist/auth/oauth/load.js");
 const imageResizeOutput = findContainingOutput(mainResult.metafile, "packages/coding-agent/dist/utils/image-resize.js");
-if (dirname(bedrockLoaderOutput) !== dirname(oauthLoaderOutput)) {
-	throw new Error("Bedrock and OAuth lazy loaders were emitted into different directories");
-}
 
 // These implementations are reached through variable-specifier imports or a
 // worker URL, so the main bundle cannot follow them. Emit one self-contained
@@ -181,20 +179,14 @@ const lazyResult = await build({
 	entryNames: "[name]",
 	entryPoints: {
 		anthropic: join(aiDistDir, "auth", "oauth", "anthropic.js"),
-		"bedrock-converse-stream": join(aiDistDir, "api", "bedrock-converse-stream.js"),
-		"github-copilot": join(aiDistDir, "auth", "oauth", "github-copilot.js"),
 		"image-resize-worker": join(codingAgentDistDir, "utils", "image-resize-worker.js"),
-		"kimi-coding": join(aiDistDir, "auth", "oauth", "kimi-coding.js"),
-		"openai-codex": join(aiDistDir, "auth", "oauth", "openai-codex.js"),
 		openrouter: join(aiDistDir, "auth", "oauth", "openrouter.js"),
-		radius: join(aiDistDir, "auth", "oauth", "radius.js"),
-		xai: join(aiDistDir, "auth", "oauth", "xai.js"),
 	},
-	outdir: dirname(bedrockLoaderOutput),
+	outdir: dirname(oauthLoaderOutput),
 	splitting: false,
 });
 
-const imageResizeWorkerOutput = resolve(dirname(bedrockLoaderOutput), "image-resize-worker.js");
+const imageResizeWorkerOutput = resolve(dirname(oauthLoaderOutput), "image-resize-worker.js");
 if (dirname(imageResizeOutput) !== dirname(imageResizeWorkerOutput)) {
 	throw new Error("Image resize implementation and worker were emitted into different directories");
 }

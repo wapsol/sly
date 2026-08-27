@@ -8,12 +8,18 @@ import {
 	getOpenRouterThinkingLevelMap,
 	type OpenRouterReasoningMetadata,
 } from "./openrouter-reasoning-options.ts";
-import {
-	CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL,
-	CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL,
-	CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL,
-	CLOUDFLARE_WORKERS_AI_BASE_URL,
-} from "../src/api/cloudflare.ts";
+// RETROFIT: src/api/cloudflare.ts went with the Cloudflare providers. The
+// generator still names these base URLs while building the upstream catalog,
+// which RETROFIT_REMOVED_PROVIDERS then filters out, so they are inlined here
+// rather than keeping a module alive for a provider this fork does not ship.
+const CLOUDFLARE_WORKERS_AI_BASE_URL =
+	"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1";
+const CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL =
+	"https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/compat";
+const CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL =
+	"https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/openai";
+const CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL =
+	"https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/anthropic";
 import type {
 	AnthropicMessagesCompat,
 	Api,
@@ -966,7 +972,7 @@ function applyThinkingLevelMetadata(model: Model<any>): void {
 		// Mercury 2 in instant mode (reasoning_effort: "none") disables tool calling.
 		// Mark "off" unsupported so the openai-completions provider omits the reasoning param
 		// instead of defaulting to {reasoning:{effort:"none"}} (see openai-completions.ts:575).
-		// Pi's low/medium/high pass through verbatim; OpenRouter normalizes to Mercury's vocabulary.
+		// Sly's low/medium/high pass through verbatim; OpenRouter normalizes to Mercury's vocabulary.
 		mergeThinkingLevelMap(model, { off: null });
 	}
 	if (model.provider === "openrouter" && model.id === "z-ai/glm-5.2") {
@@ -1555,7 +1561,7 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 				}
 
 				// models.dev reports Vertex cache_read/cache_write values for Gemini 2.5 Flash that
-				// do not match the official Gemini API standard pricing table. pi only accounts
+				// do not match the official Gemini API standard pricing table. sly only accounts
 				// cachedContentTokenCount as cacheRead.
 				const cacheRead = modelId === "gemini-2.5-flash" ? 0.03 : source.cost?.cache_read || 0;
 				models.push({
@@ -2303,7 +2309,7 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 		// Process Alibaba Cloud Model Studio Token Plan models. International and
 		// China use separate endpoints and API keys (sk-sp- prefix). The Individual
 		// provider reuses the international source and endpoint with a narrower catalog.
-		// models.dev keys are "alibaba-token-plan[-cn]"; pi exposes them as
+		// models.dev keys are "alibaba-token-plan[-cn]"; sly exposes them as
 		// "qwen-token-plan[-cn]" plus the Individual catalog view.
 		const qwenTokenPlanCompat: OpenAICompletionsCompat = {
 			thinkingFormat: "qwen",
@@ -2891,9 +2897,54 @@ async function generateModels() {
 	}
 	applyAnthropicAllowedFallbackModelMetadata(allModels.filter(isAnthropicFallbackMetadataModel));
 
+	// RETROFIT: providers removed from this fork. Filtering here rather than
+	// excising each emit path keeps the change small and robust -- upstream
+	// churns heavily on those paths, and a missed one would silently
+	// regenerate a catalog for a provider we no longer ship.
+	const RETROFIT_REMOVED_PROVIDERS = new Set([
+		"amazon-bedrock",
+		"ant-ling",
+		"azure-openai-responses",
+		"baseten",
+		"cerebras",
+		"cloudflare-ai-gateway",
+		"cloudflare-workers-ai",
+		"deepseek",
+		"fireworks",
+		"github-copilot",
+		"google",
+		"google-vertex",
+		"groq",
+		"kimi-coding",
+		"minimax",
+		"minimax-cn",
+		"mistral",
+		"moonshotai",
+		"moonshotai-cn",
+		"nvidia",
+		"openai",
+		"openai-codex",
+		"opencode",
+		"opencode-go",
+		"qwen-token-plan",
+		"qwen-token-plan-cn",
+		"qwen-token-plan-individual",
+		"radius",
+		"together",
+		"vercel-ai-gateway",
+		"xai",
+		"xiaomi",
+		"xiaomi-token-plan-ams",
+		"xiaomi-token-plan-cn",
+		"xiaomi-token-plan-sgp",
+		"zai",
+		"zai-coding-cn",
+	]);
+
 	// Group by provider and deduplicate by model ID
 	const providers: Record<string, Record<string, Model<any>>> = {};
 	for (const model of allModels) {
+		if (RETROFIT_REMOVED_PROVIDERS.has(model.provider)) continue;
 		if (!providers[model.provider]) {
 			providers[model.provider] = {};
 		}

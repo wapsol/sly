@@ -10,20 +10,20 @@ import {
 } from "../command-options.ts";
 import type { TransportAddress } from "../transport-address.ts";
 
-export interface PiCommand {
-	readonly command: "pi";
+export interface SlyCommand {
+	readonly command: "sly";
 	readonly auth?: AuthInput;
 	readonly options: Args;
 	readonly listen?: readonly TransportAddress[];
 }
 
-export interface PiCommandContext {
-	runPi(command: PiCommand): void | Promise<void>;
+export interface SlyCommandContext {
+	runPi(command: SlyCommand): void | Promise<void>;
 }
 
 const listenOption = transportOption("--listen");
 
-export const piCommand = new Command<PiCommand, PiCommandContext>("pi")
+export const piCommand = new Command<SlyCommand, SlyCommandContext>("sly")
 	.option(listenOption)
 	.option(authTokenOption)
 	.option(authTokenFileOption)
@@ -37,7 +37,7 @@ export const piCommand = new Command<PiCommand, PiCommandContext>("pi")
 		return {
 			ok: true,
 			command: {
-				command: "pi",
+				command: "sly",
 				options,
 				...(auth === undefined ? {} : { auth }),
 				...(listen.length === 0 ? {} : { listen }),

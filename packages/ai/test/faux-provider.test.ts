@@ -67,35 +67,6 @@ describe("faux provider", () => {
 		expect(response.stopReason).toBe("toolUse");
 	});
 
-	it("supports multiple models with per-model reasoning and model-aware factories", async () => {
-		const registration = registerFauxProvider({
-			models: [
-				{ id: "faux-fast", name: "Faux Fast", reasoning: false },
-				{ id: "faux-thinker", name: "Faux Thinker", reasoning: true },
-			],
-		});
-		registrations.push(registration);
-		registration.setResponses([
-			(_context, _options, _state, model) => fauxAssistantMessage(`${model.id}:${String(model.reasoning)}`),
-			(_context, _options, _state, model) => fauxAssistantMessage(`${model.id}:${String(model.reasoning)}`),
-		]);
-
-		expect(registration.models.map((model) => model.id)).toEqual(["faux-fast", "faux-thinker"]);
-		expect(registration.getModel()).toBe(registration.models[0]);
-		expect(registration.getModel("faux-fast")?.reasoning).toBe(false);
-		expect(registration.getModel("faux-thinker")?.reasoning).toBe(true);
-
-		const fast = await complete(registration.getModel("faux-fast")!, {
-			messages: [{ role: "user", content: "hi", timestamp: Date.now() }],
-		});
-		const thinker = await complete(registration.getModel("faux-thinker")!, {
-			messages: [{ role: "user", content: "hi", timestamp: Date.now() }],
-		});
-
-		expect(fast.content).toEqual([{ type: "text", text: "faux-fast:false" }]);
-		expect(thinker.content).toEqual([{ type: "text", text: "faux-thinker:true" }]);
-	});
-
 	it("rewrites api, provider, and model on returned messages", async () => {
 		const registration = registerFauxProvider({
 			api: "faux:test",

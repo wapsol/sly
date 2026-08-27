@@ -1,8 +1,8 @@
 import type {
 	ConnectionState,
 	ConnectionStateChange,
-	PiClient,
 	SessionLease,
+	SlyClient,
 	Unsubscribe,
 } from "@earendil-works/pi-client";
 import type {
@@ -64,7 +64,7 @@ async function settleRemoteSessionDisposal(cleanup: readonly Promise<void>[]): P
 }
 
 export class RemoteSession {
-	readonly #client: PiClient;
+	readonly #client: SlyClient;
 	readonly #onListenerError: ((error: Error) => void) | undefined;
 	#lifecycle: RemoteSessionLifecycle = { status: "unbound" };
 	#handle: SessionLease | undefined;
@@ -80,7 +80,7 @@ export class RemoteSession {
 		this.#resolveDisposeSignal = resolve;
 	});
 
-	private constructor(client: PiClient, options: RemoteSessionOptions = {}) {
+	private constructor(client: SlyClient, options: RemoteSessionOptions = {}) {
 		this.#client = client;
 		this.#onListenerError = options.onListenerError;
 	}
@@ -137,7 +137,7 @@ export class RemoteSession {
 		return this.#client.onConnectionStateChange(listener);
 	}
 
-	static async open(client: PiClient, sessionId: string, options: RemoteSessionOptions = {}): Promise<RemoteSession> {
+	static async open(client: SlyClient, sessionId: string, options: RemoteSessionOptions = {}): Promise<RemoteSession> {
 		const session = new RemoteSession(client, options);
 		try {
 			await session.open(sessionId);
@@ -154,7 +154,7 @@ export class RemoteSession {
 	}
 
 	static async create(
-		client: PiClient,
+		client: SlyClient,
 		createOptions: CreateRemoteSessionOptions,
 		options: RemoteSessionOptions = {},
 	): Promise<RemoteSession> {

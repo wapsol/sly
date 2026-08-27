@@ -36,7 +36,7 @@ const SYMBOLS: Readonly<Record<string, string>> = {
 	Theta: "Θ",
 	Lambda: "Λ",
 	Xi: "Ξ",
-	Pi: "Π",
+	Sly: "Π",
 	Sigma: "Σ",
 	Upsilon: "Υ",
 	Phi: "Φ",

@@ -8,7 +8,7 @@ import {
 	sessionSnapshot,
 } from "./support.ts";
 
-describe("PiClient", () => {
+describe("SlyClient", () => {
 	test("reduces only authoritative snapshots and supports unsubscribe", async () => {
 		const server = new MemoryByteServer();
 		const client = await connectClient(server);

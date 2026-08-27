@@ -5,7 +5,7 @@ const UNSUPPORTED_SERVER_OPTIONS = "The experimental server command does not sup
 const UNSUPPORTED_CLIENT_OPTIONS = "The experimental client command does not support existing CLI options yet";
 
 describe("experimental CLI command composition", () => {
-	test("composes pi command options with the existing parser", () => {
+	test("composes sly command options with the existing parser", () => {
 		const result = experimentalCli.parse([
 			"--listen",
 			"unix:///tmp/pi.sock",
@@ -23,7 +23,7 @@ describe("experimental CLI command composition", () => {
 		expect(result).toMatchObject({
 			ok: true,
 			command: {
-				command: "pi",
+				command: "sly",
 				listen: [{ transport: "unix", path: "/tmp/pi.sock" }],
 				auth: { type: "token", token: "secret" },
 				options: {
@@ -36,10 +36,10 @@ describe("experimental CLI command composition", () => {
 		});
 	});
 
-	test.each(["--help", "--version"] as const)("keeps Pi %s handling in existing CLI options", (option) => {
+	test.each(["--help", "--version"] as const)("keeps Sly %s handling in existing CLI options", (option) => {
 		expect(experimentalCli.parse([option])).toMatchObject({
 			ok: true,
-			command: { command: "pi", options: { [option === "--help" ? "help" : "version"]: true } },
+			command: { command: "sly", options: { [option === "--help" ? "help" : "version"]: true } },
 		});
 	});
 
@@ -80,16 +80,16 @@ describe("experimental CLI command composition", () => {
 		});
 	});
 
-	test.each(["pi", "server", "client"] as const)("executes the parsed %s command", async (name) => {
+	test.each(["sly", "server", "client"] as const)("executes the parsed %s command", async (name) => {
 		const context = {
 			runPi: vi.fn(() => undefined),
 			runServer: vi.fn(() => undefined),
 			runClient: vi.fn(() => undefined),
 		};
-		const result = await experimentalCli.execute(name === "pi" ? [] : [name], context);
+		const result = await experimentalCli.execute(name === "sly" ? [] : [name], context);
 
 		expect(result).toMatchObject({ ok: true, command: { command: name } });
-		expect(context.runPi).toHaveBeenCalledTimes(name === "pi" ? 1 : 0);
+		expect(context.runPi).toHaveBeenCalledTimes(name === "sly" ? 1 : 0);
 		expect(context.runServer).toHaveBeenCalledTimes(name === "server" ? 1 : 0);
 		expect(context.runClient).toHaveBeenCalledTimes(name === "client" ? 1 : 0);
 	});

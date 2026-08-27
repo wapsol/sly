@@ -111,7 +111,7 @@ describe("createAgentSession session manager defaults", () => {
 		const bashTool = session.agent.state.tools.find((tool) => tool.name === "bash");
 		expect(bashTool).toBeTruthy();
 		const result = await bashTool!.execute("test", {
-			command: `printf '%s\\n' "$PI_SESSION_ID" "$PI_SESSION_FILE" "$PI_PROVIDER" "$PI_MODEL" "$PI_REASONING_LEVEL"`,
+			command: `printf '%s\\n' "$SLY_SESSION_ID" "$SLY_SESSION_FILE" "$SLY_PROVIDER" "$SLY_MODEL" "$SLY_REASONING_LEVEL"`,
 		});
 		const output = result.content
 			.filter((item): item is { type: "text"; text: string } => item.type === "text")

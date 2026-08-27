@@ -5,16 +5,16 @@ Sessions are stored as JSONL (JSON Lines) files. Each line is a JSON object with
 ## File Location
 
 ```
-~/.pi/agent/sessions/--<path>--/<timestamp>_<uuid>.jsonl
+~/.sly/agent/sessions/--<path>--/<timestamp>_<uuid>.jsonl
 ```
 
 Where `<path>` is the working directory with `/` replaced by `-`.
 
 ## Deleting Sessions
 
-Sessions can be removed by deleting their `.jsonl` files under `~/.pi/agent/sessions/`.
+Sessions can be removed by deleting their `.jsonl` files under `~/.sly/agent/sessions/`.
 
-Pi also supports deleting sessions interactively from `/resume` (select a session and press `Ctrl+D`, then confirm). When available, pi uses the `trash` CLI to avoid permanent deletion.
+Sly also supports deleting sessions interactively from `/resume` (select a session and press `Ctrl+D`, then confirm). When available, sly uses the `trash` CLI to avoid permanent deletion.
 
 ## Session Version
 
@@ -117,9 +117,9 @@ interface Usage {
 }
 ```
 
-The exported pi-ai `StopReason` type also includes `"pending"`, but that value is reserved for partial messages in streaming events. Terminal `done`/`error` messages replace it with a completion reason before pi persists the assistant message, so `"pending"` should never appear in session JSONL.
+The exported pi-ai `StopReason` type also includes `"pending"`, but that value is reserved for partial messages in streaming events. Terminal `done`/`error` messages replace it with a completion reason before sly persists the assistant message, so `"pending"` should never appear in session JSONL.
 
-### Extended Message Types (from pi-coding-agent)
+### Extended Message Types (from sly-coding-agent)
 
 ```typescript
 interface BashExecutionMessage {

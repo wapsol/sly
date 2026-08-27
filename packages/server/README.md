@@ -6,13 +6,13 @@ Server package for pi.
 
 ## Session server core
 
-The package exports the `PiServer` session server.
+The package exports the `SlyServer` session server.
 
 ```ts
-import type { PiServerService } from "@earendil-works/pi-server";
+import type { SlyServerService } from "@earendil-works/pi-server";
 import { createUnixServer } from "@earendil-works/pi-server/unix";
 
-const service: PiServerService = {
+const service: SlyServerService = {
   async listSessions() {
     return storage.listSessions();
   },
@@ -33,11 +33,11 @@ const server = createUnixServer(service, {
 await server.start();
 ```
 
-`PiServer` composes transport listeners through the `PiServerListener` interface. Each listener must complete any transport-specific authentication and authorization before passing a connection to `PiServer`. For example, a WebSocket listener can validate credentials during the HTTP upgrade, while the Unix listener relies on socket filesystem permissions. The Unix submodule exports the `createUnixListener()` building block and `createUnixServer()` preset, keeping the common case concise without coupling the primary server to Unix sockets. The listener uses length-prefixed CBOR messages from `@earendil-works/pi-protocol`.
+`SlyServer` composes transport listeners through the `SlyServerListener` interface. Each listener must complete any transport-specific authentication and authorization before passing a connection to `SlyServer`. For example, a WebSocket listener can validate credentials during the HTTP upgrade, while the Unix listener relies on socket filesystem permissions. The Unix submodule exports the `createUnixListener()` building block and `createUnixServer()` preset, keeping the common case concise without coupling the primary server to Unix sockets. The listener uses length-prefixed CBOR messages from `@earendil-works/pi-protocol`.
 
-This package does not provide a standalone CLI or coding-agent service. Applications supply the `PiServerService` implementation.
+This package does not provide a standalone CLI or coding-agent service. Applications supply the `SlyServerService` implementation.
 
-`PiServerService.listSessions()` returns protocol `SessionMetadata`, not acquired runtime state. Services should map the durable fields their storage supports and may omit `updatedAt`, `parentSessionId`, `sessionName`, and `cwd`. `PiServer` refreshes available metadata from live snapshots without requiring stored sessions to fabricate phase, model, thinking-level, attachment, or lock values.
+`SlyServerService.listSessions()` returns protocol `SessionMetadata`, not acquired runtime state. Services should map the durable fields their storage supports and may omit `updatedAt`, `parentSessionId`, `sessionName`, and `cwd`. `SlyServer` refreshes available metadata from live snapshots without requiring stored sessions to fabricate phase, model, thinking-level, attachment, or lock values.
 
 ## Transport testing
 

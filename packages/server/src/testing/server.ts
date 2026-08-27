@@ -1,21 +1,21 @@
-import { PiServer } from "../server.ts";
-import type { PiServerOptions, PiServerService } from "../types.ts";
+import { SlyServer } from "../server.ts";
+import type { SlyServerOptions, SlyServerService } from "../types.ts";
 import { TestServerService } from "./service.ts";
 
-export interface TestServerOptions extends PiServerOptions {
-	service?: PiServerService;
+export interface TestServerOptions extends SlyServerOptions {
+	service?: SlyServerService;
 }
 
 export interface TestServer {
-	server: PiServer;
-	service: PiServerService;
+	server: SlyServer;
+	service: SlyServerService;
 }
 
-/** Create an unstarted PiServer with deterministic defaults for transport conformance tests. */
+/** Create an unstarted SlyServer with deterministic defaults for transport conformance tests. */
 export function createTestServer(options: TestServerOptions): TestServer {
 	const service = options.service ?? new TestServerService();
 	return {
-		server: new PiServer(service, {
+		server: new SlyServer(service, {
 			listeners: options.listeners,
 			maxFrameLength: options.maxFrameLength,
 			handshakeTimeoutMs: options.handshakeTimeoutMs,

@@ -31,10 +31,6 @@
 			"types": "./dist/oauth.d.ts",
 			"import": "./dist/oauth.js"
 		},
-		"./bedrock-provider": {
-			"types": "./dist/bedrock-provider.d.ts",
-			"import": "./dist/bedrock-provider.js"
-		},
 		"./bun-oauth": {
 			"types": "./dist/bun-oauth.d.ts",
 			"import": "./dist/bun-oauth.js"

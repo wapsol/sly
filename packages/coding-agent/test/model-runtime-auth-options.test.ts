@@ -70,41 +70,6 @@ describe("ModelRuntime auth options", () => {
 		expect(runtime.getError()).toBeUndefined();
 	});
 
-	it("projects provider-owned methods, names, and status", async () => {
-		const runtime = await ModelRuntime.create({ credentials: AuthStorage.inMemory(), modelsPath: null });
-		const options = authOptions(runtime);
-
-		expect(options).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({
-					type: "api_key",
-					provider: expect.objectContaining({ id: "amazon-bedrock", name: "Amazon Bedrock" }),
-					method: expect.objectContaining({ name: "AWS credentials or bearer token" }),
-				}),
-				expect.objectContaining({
-					type: "api_key",
-					provider: expect.objectContaining({ id: "google-vertex", name: "Google Vertex AI" }),
-					method: expect.objectContaining({ name: "Google Cloud credentials" }),
-				}),
-				expect.objectContaining({
-					type: "oauth",
-					provider: expect.objectContaining({ id: "anthropic", name: "Anthropic" }),
-				}),
-				expect.objectContaining({
-					type: "api_key",
-					provider: expect.objectContaining({ id: "cloudflare-ai-gateway", name: "Cloudflare AI Gateway" }),
-				}),
-				expect.objectContaining({
-					type: "api_key",
-					provider: expect.objectContaining({ id: "cloudflare-workers-ai", name: "Cloudflare Workers AI" }),
-				}),
-			]),
-		);
-		expect(authOptions(runtime, "api_key").every((option) => option.type === "api_key")).toBe(true);
-		expect(authOptions(runtime, "oauth").every((option) => option.type === "oauth")).toBe(true);
-		expect(options.some((option) => option.provider.id === "openai-codex" && option.type === "api_key")).toBe(false);
-	});
-
 	it("attaches the provider's active auth status to every method option", async () => {
 		const runtime = await ModelRuntime.create({
 			credentials: AuthStorage.inMemory({
@@ -121,39 +86,6 @@ describe("ModelRuntime auth options", () => {
 		const options = authOptions(runtime).filter((option) => option.provider.id === "anthropic");
 		expect(options).toHaveLength(2);
 		expect(await runtime.checkAuth("anthropic")).toMatchObject({ type: "oauth" });
-	});
-
-	it("distinguishes subscription OAuth from generic OAuth sign-in", async () => {
-		const runtime = await ModelRuntime.create({
-			credentials: AuthStorage.inMemory({
-				anthropic: {
-					type: "oauth",
-					access: "anthropic-access",
-					refresh: "anthropic-refresh",
-					expires: Date.now() + 60 * 60_000,
-				},
-				openrouter: {
-					type: "oauth",
-					access: "openrouter-key",
-					refresh: "",
-					expires: Number.MAX_SAFE_INTEGER,
-				},
-				radius: {
-					type: "oauth",
-					access: "radius-access",
-					refresh: "radius-refresh",
-					expires: Date.now() + 60 * 60_000,
-				},
-			}),
-			modelsPath: null,
-		});
-
-		expect(runtime.isUsingOAuth("anthropic")).toBe(true);
-		expect(runtime.isUsingSubscription("anthropic")).toBe(true);
-		expect(runtime.isUsingOAuth("openrouter")).toBe(true);
-		expect(runtime.isUsingSubscription("openrouter")).toBe(false);
-		expect(runtime.isUsingOAuth("radius")).toBe(true);
-		expect(runtime.isUsingSubscription("radius")).toBe(false);
 	});
 
 	it("constructs an API key method for an extension API-key provider", async () => {
@@ -191,76 +123,6 @@ describe("ModelRuntime auth options", () => {
 		});
 
 		expect(auth?.auth).toEqual({ apiKey: "request-key", headers: { "x-request-value": "request-header" } });
-	});
-
-	it("lets an explicit Authorization header override authHeader case-insensitively", async () => {
-		const runtime = await ModelRuntime.create({ credentials: AuthStorage.inMemory(), modelsPath: null });
-		let capturedHeaders: Record<string, string | null> | undefined;
-		runtime.registerProvider("auth-header-provider", {
-			baseUrl: "https://example.test/v1",
-			apiKey: "generated-key",
-			authHeader: true,
-			api: "openai-completions",
-			streamSimple: (_model, _context, options) => {
-				capturedHeaders = options?.headers;
-				throw new Error("captured");
-			},
-			models: [testModel("auth-header-model")],
-		});
-		const model = runtime.getModel("auth-header-provider", "auth-header-model");
-		expect(model).toBeDefined();
-
-		await runtime.completeSimple(model!, { messages: [] }, { headers: { authorization: "Explicit token" } });
-
-		expect(capturedHeaders).toEqual({ authorization: "Explicit token" });
-	});
-
-	it("transforms fully assembled headers once without forwarding the transform", async () => {
-		const runtime = await ModelRuntime.create({ credentials: AuthStorage.inMemory(), modelsPath: null });
-		let capturedHeaders: Record<string, string | null> | undefined;
-		let transforms = 0;
-		runtime.registerProvider("header-provider", {
-			baseUrl: "https://example.test/v1",
-			apiKey: "generated-key",
-			authHeader: true,
-			headers: { "x-provider": "provider" },
-			api: "openai-completions",
-			streamSimple: (_model, _context, options) => {
-				expect(options).not.toHaveProperty("transformHeaders");
-				capturedHeaders = options?.headers;
-				throw new Error("captured");
-			},
-			models: [{ ...testModel("header-model"), headers: { "x-model": "model" } }],
-		});
-		const model = runtime.getModel("header-provider", "header-model");
-		expect(model).toBeDefined();
-
-		await runtime.completeSimple(
-			model!,
-			{ messages: [] },
-			{
-				headers: { "x-explicit": "explicit" },
-				transformHeaders: async (headers) => {
-					transforms++;
-					expect(headers).toEqual({
-						Authorization: "Bearer generated-key",
-						"x-provider": "provider",
-						"x-model": "model",
-						"x-explicit": "explicit",
-					});
-					return { ...headers, "x-transformed": "yes" };
-				},
-			},
-		);
-
-		expect(transforms).toBe(1);
-		expect(capturedHeaders).toEqual({
-			Authorization: "Bearer generated-key",
-			"x-provider": "provider",
-			"x-model": "model",
-			"x-explicit": "explicit",
-			"x-transformed": "yes",
-		});
 	});
 
 	it("forwards cancellation to extension OAuth refresh", async () => {

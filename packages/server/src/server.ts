@@ -25,21 +25,21 @@ import {
 	INTERNAL_SERVER_ERROR_MESSAGE,
 	InternalServerError,
 	NOT_IMPLEMENTED_MESSAGE,
-	PiServerError,
+	SlyServerError,
 } from "./errors.ts";
-import type { PiServerListener } from "./listener.ts";
+import type { SlyServerListener } from "./listener.ts";
 import { LiveSessionManager } from "./sessions.ts";
 import { ServerSnapshotPublisher } from "./snapshots.ts";
-import type { PiServerOptions, PiServerService } from "./types.ts";
+import type { SlyServerOptions, SlyServerService } from "./types.ts";
 
 const DEFAULT_HANDSHAKE_TIMEOUT_MS = 5_000;
 const MAX_UINT32 = 0xffff_ffff;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
-export class PiServer {
+export class SlyServer {
 	readonly id: string;
 
-	private readonly listeners: readonly PiServerListener[];
+	private readonly listeners: readonly SlyServerListener[];
 	private readonly maxFrameLength: number;
 	private readonly handshakeTimeoutMs: number;
 	private readonly onError: ((error: Error) => void) | undefined;
@@ -51,7 +51,7 @@ export class PiServer {
 	private startPromise?: Promise<this>;
 	private started = false;
 
-	constructor(service: PiServerService, options: PiServerOptions) {
+	constructor(service: SlyServerService, options: SlyServerOptions) {
 		const resolved = resolveOptions(options);
 		this.listeners = options.listeners;
 		this.id = options.serverId ?? randomUUID();
@@ -83,15 +83,15 @@ export class PiServer {
 	}
 
 	start(): Promise<this> {
-		if (this.started) return Promise.reject(new Error("PiServer is already started"));
-		if (this.startPromise) return Promise.reject(new Error("PiServer is already starting"));
-		if (this.closing) return Promise.reject(new Error("PiServer is closing or closed"));
+		if (this.started) return Promise.reject(new Error("SlyServer is already started"));
+		if (this.startPromise) return Promise.reject(new Error("SlyServer is already starting"));
+		if (this.closing) return Promise.reject(new Error("SlyServer is closing or closed"));
 		this.startPromise = this.startInternal();
 		return this.startPromise;
 	}
 
 	private async startInternal(): Promise<this> {
-		const started: PiServerListener[] = [];
+		const started: SlyServerListener[] = [];
 		try {
 			for (const listener of this.listeners) {
 				await listener.start((connection) => this.accept(connection));
@@ -353,7 +353,7 @@ export class PiServer {
 			this.reportError(error.cause);
 			return { code: "internal_error", message: INTERNAL_SERVER_ERROR_MESSAGE };
 		}
-		if (error instanceof PiServerError) {
+		if (error instanceof SlyServerError) {
 			if (error.code === "not_implemented") {
 				return { code: "not_implemented", message: NOT_IMPLEMENTED_MESSAGE };
 			}
@@ -377,12 +377,12 @@ export class PiServer {
 	}
 }
 
-function resolveOptions(options: PiServerOptions): { maxFrameLength: number; handshakeTimeoutMs: number } {
-	if (!Array.isArray(options.listeners)) throw new TypeError("PiServer listeners must be an array");
-	if (options.serverId === "") throw new TypeError("PiServer serverId must not be empty");
+function resolveOptions(options: SlyServerOptions): { maxFrameLength: number; handshakeTimeoutMs: number } {
+	if (!Array.isArray(options.listeners)) throw new TypeError("SlyServer listeners must be an array");
+	if (options.serverId === "") throw new TypeError("SlyServer serverId must not be empty");
 	const maxFrameLength = options.maxFrameLength ?? DEFAULT_MAX_FRAME_LENGTH;
 	if (!Number.isSafeInteger(maxFrameLength) || maxFrameLength <= 0 || maxFrameLength > MAX_UINT32) {
-		throw new TypeError(`PiServer maxFrameLength must be an integer between 1 and ${MAX_UINT32}`);
+		throw new TypeError(`SlyServer maxFrameLength must be an integer between 1 and ${MAX_UINT32}`);
 	}
 	const handshakeTimeoutMs = options.handshakeTimeoutMs ?? DEFAULT_HANDSHAKE_TIMEOUT_MS;
 	if (
@@ -390,7 +390,7 @@ function resolveOptions(options: PiServerOptions): { maxFrameLength: number; han
 		handshakeTimeoutMs <= 0 ||
 		handshakeTimeoutMs > MAX_TIMER_DELAY_MS
 	) {
-		throw new TypeError(`PiServer handshakeTimeoutMs must be an integer between 1 and ${MAX_TIMER_DELAY_MS}`);
+		throw new TypeError(`SlyServer handshakeTimeoutMs must be an integer between 1 and ${MAX_TIMER_DELAY_MS}`);
 	}
 	return { maxFrameLength, handshakeTimeoutMs };
 }

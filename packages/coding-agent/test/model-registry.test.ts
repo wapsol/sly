@@ -22,7 +22,7 @@ describe("ModelRegistry", () => {
 	let authStorage: AuthStorage;
 
 	beforeEach(() => {
-		tempDir = join(tmpdir(), `pi-test-model-registry-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+		tempDir = join(tmpdir(), `sly-test-model-registry-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		mkdirSync(tempDir, { recursive: true });
 		modelsJsonPath = join(tempDir, "models.json");
 		authStorage = AuthStorage.inMemory();
@@ -84,7 +84,7 @@ describe("ModelRegistry", () => {
 		id: "test-openai-model",
 		name: "Test OpenAI Model",
 		api: "openai-completions",
-		provider: "openai",
+		provider: "openrouter",
 		baseUrl: "https://api.openai.com/v1",
 		reasoning: false,
 		input: ["text"],
@@ -186,7 +186,7 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = await createModelRegistry(authStorage, modelsJsonPath);
-			const googleModels = getModelsForProvider(registry, "google");
+			const googleModels = getModelsForProvider(registry, "huggingface");
 
 			// Google models should still have their original baseUrl
 			expect(googleModels.length).toBeGreaterThan(0);
@@ -198,7 +198,7 @@ describe("ModelRegistry", () => {
 				// baseUrl-only for anthropic
 				anthropic: overrideConfig("https://anthropic-proxy.example.com/v1"),
 				// Add custom model for google (merged with built-ins)
-				google: providerConfig(
+				huggingface: providerConfig(
 					"https://google-proxy.example.com/v1",
 					[{ id: "gemini-custom" }],
 					"google-generative-ai",
@@ -213,7 +213,7 @@ describe("ModelRegistry", () => {
 			expect(anthropicModels[0].baseUrl).toBe("https://anthropic-proxy.example.com/v1");
 
 			// Google: built-ins plus custom model
-			const googleModels = getModelsForProvider(registry, "google");
+			const googleModels = getModelsForProvider(registry, "huggingface");
 			expect(googleModels.length).toBeGreaterThan(1);
 			expect(googleModels.some((m) => m.id === "gemini-custom")).toBe(true);
 		});
@@ -331,8 +331,8 @@ describe("ModelRegistry", () => {
 
 			const registry = await createModelRegistry(authStorage, modelsJsonPath);
 
-			expect(getModelsForProvider(registry, "google").length).toBeGreaterThan(0);
-			expect(getModelsForProvider(registry, "openai").length).toBeGreaterThan(0);
+			expect(getModelsForProvider(registry, "huggingface").length).toBeGreaterThan(0);
+			expect(getModelsForProvider(registry, "openrouter").length).toBeGreaterThan(0);
 		});
 
 		test("provider-level baseUrl applies to both built-in and custom models", async () => {
@@ -991,9 +991,9 @@ describe("ModelRegistry", () => {
 		test("getProviderDisplayName resolves registered, OAuth, built-in, and fallback names", async () => {
 			const registry = await createModelRegistry(authStorage, modelsJsonPath);
 
-			expect(registry.getProviderDisplayName("openai")).toBe("OpenAI");
-			expect(registry.getProviderDisplayName("github-copilot")).toBe("GitHub Copilot");
-			expect(registry.getProviderDisplayName("zai")).toBe("Z.AI");
+			expect(registry.getProviderDisplayName("openrouter")).toBe("OpenRouter");
+			expect(registry.getProviderDisplayName("huggingface")).toBe("Hugging Face");
+			expect(registry.getProviderDisplayName("anthropic")).toBe("Anthropic");
 			expect(registry.getProviderDisplayName("unknown-provider")).toBe("unknown-provider");
 
 			registry.registerProvider("named-provider", {
@@ -1093,44 +1093,6 @@ describe("ModelRegistry", () => {
 			expect(await registry.getApiKeyAndHeaders(model)).toMatchObject({
 				ok: true,
 				headers: { "x-model-override": "enabled" },
-			});
-		});
-
-		test("stored API key env propagates to request auth and resolves headers", async () => {
-			await authStorage.modify("cloudflare-ai-gateway", async () => ({
-				type: "api_key",
-				key: "$CLOUDFLARE_API_KEY",
-				env: {
-					CLOUDFLARE_API_KEY: "stored-cf-token",
-					CLOUDFLARE_ACCOUNT_ID: "stored-account",
-					CLOUDFLARE_GATEWAY_ID: "stored-gateway",
-				},
-			}));
-			writeRawModelsJson({
-				"cloudflare-ai-gateway": {
-					headers: { "x-account": "$CLOUDFLARE_ACCOUNT_ID" },
-				},
-			});
-
-			const registry = await createModelRegistry(authStorage, modelsJsonPath);
-			const model = registry.getAll().find((m) => m.provider === "cloudflare-ai-gateway");
-			expect(model).toBeDefined();
-
-			const auth = await registry.getApiKeyAndHeaders(model!);
-
-			expect(auth).toEqual({
-				ok: true,
-				apiKey: undefined,
-				headers: {
-					"cf-aig-authorization": "Bearer stored-cf-token",
-					Authorization: null,
-					"x-api-key": null,
-					"x-account": "stored-account",
-				},
-				env: {
-					CLOUDFLARE_ACCOUNT_ID: "stored-account",
-					CLOUDFLARE_GATEWAY_ID: "stored-gateway",
-				},
 			});
 		});
 
@@ -1876,25 +1838,6 @@ describe("ModelRegistry", () => {
 				expect(available.some((m) => m.provider === "custom-provider")).toBe(true);
 				const count = parseInt(readFileSync(counterFile, "utf-8").trim(), 10);
 				expect(count).toBe(0);
-			});
-
-			test("getAvailable filters GitHub Copilot OAuth models to account picker availability", async () => {
-				await authStorage.modify("github-copilot", async () => ({
-					type: "oauth",
-					refresh: "github-access-token",
-					access: "tid=test;exp=9999999999;proxy-ep=proxy.individual.githubcopilot.com;",
-					expires: Date.now() + 60_000,
-					availableModelIds: ["gpt-4.1"],
-				}));
-
-				const registry = await createModelRegistry(authStorage, modelsJsonPath);
-
-				expect(
-					registry
-						.getAvailable()
-						.filter((m) => m.provider === "github-copilot")
-						.map((m) => m.id),
-				).toEqual(["gpt-4.1"]);
 			});
 
 			test("getApiKeyAndHeaders resolves authHeader on every request", async () => {

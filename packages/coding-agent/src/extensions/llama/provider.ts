@@ -46,7 +46,7 @@ async function routerAutoloadEnabled(
 	}
 }
 
-function toPiModel(model: LlamaModelInfo, serverUrl: string): Model<"openai-completions"> {
+function toSlyModel(model: LlamaModelInfo, serverUrl: string): Model<"openai-completions"> {
 	const reportedContextWindow = model.meta?.n_ctx ?? model.meta?.n_ctx_train;
 	const contextWindow = reportedContextWindow && reportedContextWindow > 0 ? reportedContextWindow : 128000;
 	return {
@@ -86,7 +86,7 @@ export function createLlamaProvider(): LlamaProviderController {
 	): void => {
 		models = catalog
 			.filter((model) => modelIsSelectable(model, options.routerAutoload === true))
-			.map((model) => toPiModel(model, serverUrl));
+			.map((model) => toSlyModel(model, serverUrl));
 	};
 
 	const provider: Provider<"openai-completions"> = {
@@ -164,7 +164,7 @@ export function createLlamaProvider(): LlamaProviderController {
 			if (context.signal.aborted) return;
 			const refreshed = catalog
 				.filter((model) => modelIsSelectable(model, routerAutoload))
-				.map((model) => toPiModel(model, serverUrl));
+				.map((model) => toSlyModel(model, serverUrl));
 			await context.publish({
 				persist: { models: refreshed, checkedAt: Date.now() },
 				update: () => {

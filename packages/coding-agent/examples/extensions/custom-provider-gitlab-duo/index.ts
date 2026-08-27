@@ -5,7 +5,7 @@
  * Delegates to pi-ai's built-in Anthropic and OpenAI streaming implementations.
  *
  * Usage:
- *   pi -e ./packages/coding-agent/examples/extensions/custom-provider-gitlab-duo
+ *   sly -e ./packages/coding-agent/examples/extensions/custom-provider-gitlab-duo
  *   # Then /login gitlab-duo, or set GITLAB_TOKEN=glpat-...
  */
 
@@ -18,7 +18,6 @@ import {
 	type Model,
 	type OAuthCredentials,
 	type OAuthLoginCallbacks,
-	openAIResponsesApi,
 	type SimpleStreamOptions,
 	type ThinkingLevelMap,
 } from "@earendil-works/pi-ai/compat";
@@ -337,7 +336,7 @@ export function streamGitLabDuo(
 							context,
 							streamOptions,
 						)
-					: openAIResponsesApi().streamSimple(
+					: anthropicMessagesApi().streamSimple(
 							modelWithBaseUrl as Model<"openai-responses">,
 							context,
 							streamOptions,

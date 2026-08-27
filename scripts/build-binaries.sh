@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build pi binaries for all platforms locally.
+# Build sly binaries for all platforms locally.
 # Mirrors .github/workflows/build-binaries.yml
 #
 # Usage:
@@ -200,7 +200,7 @@ for platform in "${PLATFORMS[@]}"; do
     # worker must be present in the compiled executable.
     #
     # Disable cwd bunfig.toml autoload so project preload scripts cannot crash the
-    # standalone binary before pi starts (see #7684).
+    # standalone binary before sly starts (see #7684).
     if [[ "$platform" == windows-* ]]; then
         bun build --compile --no-compile-autoload-bunfig --target="$bun_target" ./dist/bun/cli.js ./src/utils/image-resize-worker.ts --outfile "$OUTPUT_DIR/$platform/pi.exe"
     else
@@ -257,7 +257,7 @@ for platform in "${PLATFORMS[@]}"; do
     else
         # Unix platforms (tar.gz) - use wrapper directory for mise compatibility
         echo "Creating pi-$platform.tar.gz..."
-        mv "$platform" pi && tar -czf pi-$platform.tar.gz pi && mv pi "$platform"
+        mv "$platform" sly && tar -czf pi-$platform.tar.gz sly && mv sly "$platform"
     fi
 done
 
@@ -268,7 +268,7 @@ for platform in "${PLATFORMS[@]}"; do
     if [[ "$platform" == windows-* ]]; then
         mkdir -p "$platform" && (cd "$platform" && unzip -q ../pi-$platform.zip)
     else
-        tar -xzf pi-$platform.tar.gz && mv pi "$platform"
+        tar -xzf pi-$platform.tar.gz && mv sly "$platform"
     fi
 done
 

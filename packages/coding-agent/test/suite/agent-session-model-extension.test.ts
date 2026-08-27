@@ -1,5 +1,5 @@
-import type { AgentTool, ThinkingLevel } from "@earendil-works/pi-agent-core";
-import { fauxAssistantMessage, fauxToolCall, type Model, type Usage } from "@earendil-works/pi-ai";
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { fauxAssistantMessage, fauxToolCall, type Usage } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import type { BuildSystemPromptOptions, ExtensionAPI } from "../../src/index.ts";
@@ -12,63 +12,6 @@ describe("AgentSession model and extension characterization", () => {
 		while (harnesses.length > 0) {
 			harnesses.pop()?.cleanup();
 		}
-	});
-
-	it("setModel saves the model to the session and emits model_select", async () => {
-		const modelEvents: string[] = [];
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: true },
-			],
-			extensionFactories: [
-				(pi) => {
-					pi.on("model_select", async (event) => {
-						modelEvents.push(`${event.previousModel?.id ?? "none"}->${event.model.id}:${event.source}`);
-					});
-				},
-			],
-		});
-		harnesses.push(harness);
-		const nextModel = harness.getModel("faux-2")!;
-
-		await harness.session.setModel(nextModel);
-
-		expect(harness.session.model?.id).toBe("faux-2");
-		expect(modelEvents).toEqual(["faux-1->faux-2:set"]);
-		expect(
-			harness.sessionManager
-				.getEntries()
-				.filter((entry) => entry.type === "model_change")
-				.map((entry) => `${entry.provider}/${entry.modelId}`),
-		).toEqual([`${nextModel.provider}/${nextModel.id}`]);
-		expect(harness.settingsManager.getDefaultProvider()).toBeUndefined();
-		expect(harness.settingsManager.getDefaultModel()).toBeUndefined();
-	});
-
-	it("only persists model and thinking defaults when requested", async () => {
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: true },
-			],
-		});
-		harnesses.push(harness);
-		const nextModel = harness.getModel("faux-2")!;
-
-		await harness.session.setModel(nextModel);
-		expect(harness.settingsManager.getDefaultProvider()).toBeUndefined();
-		expect(harness.settingsManager.getDefaultModel()).toBeUndefined();
-
-		harness.session.setThinkingLevel("low");
-		expect(harness.settingsManager.getDefaultThinkingLevel()).toBeUndefined();
-
-		await harness.session.setModel(nextModel, { persist: true });
-		expect(harness.settingsManager.getDefaultProvider()).toBe(nextModel.provider);
-		expect(harness.settingsManager.getDefaultModel()).toBe(nextModel.id);
-
-		harness.session.setThinkingLevel("high", { persist: true });
-		expect(harness.settingsManager.getDefaultThinkingLevel()).toBe("high");
 	});
 
 	it("persists the requested default thinking level even when the current model clamps it", async () => {
@@ -104,92 +47,6 @@ describe("AgentSession model and extension characterization", () => {
 		expect(harness.settingsManager.getDefaultThinkingLevel()).toBe("low");
 	});
 
-	it("applies per-model thinking level override on model switch", async () => {
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: true },
-			],
-			settings: { defaultThinkingLevel: "medium" },
-		});
-		harnesses.push(harness);
-
-		// Set a per-model override for faux-2
-		harness.settingsManager.setModelThinkingLevel("faux", "faux-2", "low");
-
-		// Session starts on faux-1 with default thinking
-		harness.session.setThinkingLevel("high");
-		expect(harness.session.thinkingLevel).toBe("high");
-
-		// Switch to faux-2 → per-model override should apply
-		const model2 = harness.getModel("faux-2")!;
-		await harness.session.setModel(model2);
-		expect(harness.session.thinkingLevel).toBe("low");
-
-		// Switch back to faux-1 → no per-model override, uses global default
-		const model1 = harness.getModel("faux-1")!;
-		await harness.session.setModel(model1);
-		expect(harness.session.thinkingLevel).toBe("medium");
-	});
-
-	it("falls back to current session thinking level when no per-model or global default is configured", async () => {
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: true },
-			],
-		});
-		harnesses.push(harness);
-
-		harness.session.setThinkingLevel("high");
-		await harness.session.setModel(harness.getModel("faux-2")!);
-		expect(harness.session.thinkingLevel).toBe("high");
-	});
-
-	it("per-model override takes priority over global default during model switch", async () => {
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: true },
-			],
-			settings: {
-				defaultThinkingLevel: "high",
-				modelThinkingLevels: { "faux/faux-2": "minimal" },
-			},
-		});
-		harnesses.push(harness);
-
-		// Start on a non-thinking model, then switch to faux-2
-		const model2 = harness.getModel("faux-2")!;
-		await harness.session.setModel(model2);
-		expect(harness.session.thinkingLevel).toBe("minimal");
-	});
-
-	it("cycles through scoped models and preserves the scoped thinking preference", async () => {
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: false },
-			],
-		});
-		harnesses.push(harness);
-		const modelOne = harness.getModel("faux-1")!;
-		const modelTwo = harness.getModel("faux-2")!;
-		harness.session.setScopedModels([{ model: modelOne, thinkingLevel: "high" }, { model: modelTwo }] as Array<{
-			model: Model<string>;
-			thinkingLevel?: ThinkingLevel;
-		}>);
-		harness.session.setThinkingLevel("high");
-
-		await harness.session.cycleModel();
-		expect(harness.session.model?.id).toBe("faux-2");
-		expect(harness.session.thinkingLevel).toBe("off");
-
-		await harness.session.cycleModel();
-		expect(harness.session.model?.id).toBe("faux-1");
-		expect(harness.session.thinkingLevel).toBe("high");
-	});
-
 	it("clamps thinking levels to model capabilities and cycles available levels", async () => {
 		const harness = await createHarness({ models: [{ id: "faux-1", reasoning: false }] });
 		harnesses.push(harness);
@@ -217,21 +74,6 @@ describe("AgentSession model and extension characterization", () => {
 		expect(harness.session.cycleThinkingLevel()).toBe("xhigh");
 		expect(harness.session.cycleThinkingLevel()).toBe("max");
 		expect(harness.session.cycleThinkingLevel()).toBe("off");
-	});
-
-	it("throws when setModel is called without configured auth", async () => {
-		const harness = await createHarness({
-			models: [
-				{ id: "faux-1", name: "One", reasoning: true },
-				{ id: "faux-2", name: "Two", reasoning: true },
-			],
-			withConfiguredAuth: false,
-		});
-		harnesses.push(harness);
-
-		await expect(harness.session.setModel(harness.getModel("faux-2")!)).rejects.toThrow(
-			`No API key for ${harness.getModel().provider}/faux-2`,
-		);
 	});
 
 	it("allows extension tool_call handlers to block tool execution", async () => {

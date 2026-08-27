@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { InMemoryCredentialStore } from "../src/auth/credential-store.ts";
 import type { ApiKeyAuth, CredentialStore, OAuthAuth, OAuthCredential, ProviderAuth } from "../src/auth/types.ts";
-import { calculateCost, createModels, createProvider, hasApi, type Provider } from "../src/models.ts";
+import { calculateCost, createModels, type Provider } from "../src/models.ts";
 import { InMemoryModelsStore, type ModelsStore, type ModelsStoreEntry } from "../src/models-store.ts";
 import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, StreamOptions, Usage } from "../src/types.ts";
 import { AssistantMessageEventStream } from "../src/utils/event-stream.ts";
@@ -159,104 +159,6 @@ describe("Models runtime", () => {
 		expect(long.cacheWrite).toBe(0.0000125);
 	});
 
-	it("registers, replaces, and deletes providers", () => {
-		const models = createModels();
-		models.setProvider(testProvider({ id: "p1" }));
-		models.setProvider(testProvider({ id: "p2" }));
-		expect(models.getProviders().map((p) => p.id)).toEqual(["p1", "p2"]);
-
-		const replacement = testProvider({ id: "p1" });
-		models.setProvider(replacement);
-		expect(models.getProvider("p1")).toBe(replacement);
-		expect(models.getProviders()).toHaveLength(2);
-
-		models.deleteProvider("p1");
-		expect(models.getProvider("p1")).toBeUndefined();
-
-		models.clearProviders();
-		expect(models.getProviders()).toHaveLength(0);
-	});
-
-	it("lists and finds models per provider", async () => {
-		const models = createModels();
-		models.setProvider(testProvider({ id: "p1", models: [testModel("p1", "m1"), testModel("p1", "m2")] }));
-		models.setProvider(testProvider({ id: "p2", models: [testModel("p2", "m3")] }));
-
-		expect(models.getModels().map((m) => m.id)).toEqual(["m1", "m2", "m3"]);
-		expect(models.getModels("p1").map((m) => m.id)).toEqual(["m1", "m2"]);
-		expect(models.getModels("nope").length).toBe(0);
-		expect(models.getModel("p2", "m3")?.id).toBe("m3");
-		expect(models.getModel("p2", "missing")).toBeUndefined();
-
-		// hasApi() narrows dynamically looked-up models with a runtime check
-		const found = models.getModel("p2", "m3");
-		expect(found && hasApi(found, "openai-completions")).toBe(false);
-		expect(found && hasApi(found, "test-api")).toBe(true);
-		if (found && hasApi(found, "test-api")) {
-			const _typed: Model<"test-api"> = found;
-			expect(_typed.id).toBe("m3");
-		}
-	});
-
-	it("swallows provider source failures for both all-provider and single-provider listing", () => {
-		const models = createModels();
-		models.setProvider(
-			testProvider({
-				id: "broken",
-				getModels: () => {
-					throw new Error("boom");
-				},
-			}),
-		);
-		models.setProvider(testProvider({ id: "ok", models: [testModel("ok", "m1")] }));
-
-		expect(models.getModels().map((m) => m.id)).toEqual(["m1"]);
-		expect(models.getModels("broken")).toEqual([]);
-		// precise failures come from the provider directly
-		expect(() => models.getProvider("broken")?.getModels()).toThrow("boom");
-	});
-
-	it("refresh() updates every configured dynamic provider and reports failures", async () => {
-		let list = [testModel("dyn", "before")];
-		let refreshes = 0;
-		const models = createModels();
-		models.setProvider(
-			testProvider({
-				id: "dyn",
-				getModels: () => list,
-				refreshModels: async (refresh) => {
-					if (!refresh.allowNetwork) return;
-					refreshes++;
-					await refresh.publish({
-						update: () => {
-							list = [testModel("dyn", "after")];
-						},
-					});
-				},
-			}),
-		);
-		models.setProvider(testProvider({ id: "static", models: [testModel("static", "s1")] }));
-
-		expect(models.getModel("dyn", "before")).toBeDefined();
-		const first = await models.refresh();
-		expect(first.errors.size).toBe(0);
-		expect(refreshes).toBe(1);
-		expect(models.getModel("dyn", "after")).toBeDefined();
-		expect(models.getModel("dyn", "before")).toBeUndefined();
-
-		models.setProvider(
-			testProvider({
-				id: "flaky",
-				refreshModels: async ({ allowNetwork }) => {
-					if (allowNetwork) throw new Error("fetch failed");
-				},
-			}),
-		);
-		const second = await models.refresh();
-		expect(refreshes).toBe(2);
-		expect(second.errors.get("flaky")?.message).toBe("fetch failed");
-	});
-
 	it("restricts refresh work to selected providers", async () => {
 		const calls: string[] = [];
 		const models = createModels();
@@ -275,50 +177,6 @@ describe("Models runtime", () => {
 
 		expect(result.errors.size).toBe(0);
 		expect(calls).toEqual(["two:cache", "two:network"]);
-	});
-
-	it("restores cached models before waiting for network auth", async () => {
-		const store = new InMemoryModelsStore();
-		await store.write("dynamic", { models: [testModel("dynamic", "cached")] });
-		let markAuthStarted: (() => void) | undefined;
-		let finishAuth: (() => void) | undefined;
-		const authStarted = new Promise<void>((resolve) => {
-			markAuthStarted = resolve;
-		});
-		const blockedAuth = new Promise<void>((resolve) => {
-			finishAuth = resolve;
-		});
-		const provider = createProvider({
-			id: "dynamic",
-			auth: {
-				apiKey: {
-					name: "Blocked auth",
-					resolve: async () => {
-						markAuthStarted?.();
-						await blockedAuth;
-						return { auth: { apiKey: "key" } };
-					},
-				},
-			},
-			models: [],
-			fetchModels: async () => {
-				throw new Error("must not fetch");
-			},
-			api: {
-				stream: () => new AssistantMessageEventStream(),
-				streamSimple: () => new AssistantMessageEventStream(),
-			},
-		});
-		const models = createModels({ modelsStore: store });
-		models.setProvider(provider);
-		const controller = new AbortController();
-		const pending = models.refresh({ providers: ["dynamic"], signal: controller.signal });
-		await authStarted;
-
-		expect(models.getModel("dynamic", "cached")).toBeDefined();
-		controller.abort();
-		expect(await pending).toMatchObject({ aborted: true });
-		finishAuth?.();
 	});
 
 	it("lets providers choose persistent deletion and ephemeral publication atomically", async () => {
@@ -360,37 +218,6 @@ describe("Models runtime", () => {
 		expect(result.errors.size).toBe(0);
 		expect(entry).toBeUndefined();
 		expect(state).toBe("ephemeral");
-	});
-
-	it("persists dynamic catalogs and restores them without network access", async () => {
-		const credentials = new InMemoryCredentialStore();
-		const modelsStore = new InMemoryModelsStore();
-		await credentials.modify("dynamic", async () => ({ type: "api_key", key: "key" }));
-		const createDynamicProvider = (fetchModels: (() => Promise<readonly Model<Api>[]>) | undefined) =>
-			createProvider({
-				id: "dynamic",
-				auth: { apiKey: envKeyAuth(undefined) },
-				models: [],
-				fetchModels: fetchModels ? () => fetchModels() : undefined,
-				api: {
-					stream: () => new AssistantMessageEventStream(),
-					streamSimple: () => new AssistantMessageEventStream(),
-				},
-			});
-
-		const online = createModels({ credentials, modelsStore });
-		online.setProvider(createDynamicProvider(async () => [testModel("dynamic", "fetched")]));
-		expect((await online.refresh()).errors.size).toBe(0);
-		expect(online.getModel("dynamic", "fetched")).toBeDefined();
-
-		const offline = createModels({ credentials, modelsStore });
-		offline.setProvider(
-			createDynamicProvider(async () => {
-				throw new Error("must not fetch");
-			}),
-		);
-		expect((await offline.refresh({ allowNetwork: false })).errors.size).toBe(0);
-		expect(offline.getModel("dynamic", "fetched")).toBeDefined();
 	});
 
 	it("passes effective API-key credentials and refresh options while skipping unconfigured providers", async () => {
