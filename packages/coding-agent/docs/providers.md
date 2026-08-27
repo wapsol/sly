@@ -90,6 +90,7 @@ sly
 | OpenCode Go | `OPENCODE_API_KEY` | `opencode-go` |
 | Radius | `RADIUS_API_KEY` | `radius` |
 | Hugging Face | `HF_TOKEN` | `huggingface` |
+| Melious | `MELIOUS_API_KEY` | `melious` |
 | Fireworks | `FIREWORKS_API_KEY` | `fireworks` |
 | Together AI | `TOGETHER_API_KEY` | `together` |
 | Baseten | `BASETEN_API_KEY` | `baseten` |

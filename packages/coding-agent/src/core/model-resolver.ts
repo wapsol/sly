@@ -21,6 +21,8 @@ export const defaultModelPerProvider: Record<KnownProvider, string> = {
 	anthropic: "claude-opus-4-8",
 	openrouter: "moonshotai/kimi-k2.6",
 	huggingface: "moonshotai/Kimi-K2.6",
+	// Melious has a dynamic catalog; resolve whatever the gateway lists.
+	melious: "auto",
 };
 
 export interface ScopedModel {

@@ -14,7 +14,7 @@ export type KnownImagesApi = "openrouter-images";
 
 export type ImagesApi = KnownImagesApi | (string & {});
 
-export type KnownProvider = "anthropic" | "huggingface" | "openrouter";
+export type KnownProvider = "anthropic" | "huggingface" | "melious" | "openrouter";
 export type ProviderId = KnownProvider | string;
 
 export type KnownImagesProvider = "openrouter";

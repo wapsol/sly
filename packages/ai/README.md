@@ -437,6 +437,7 @@ Built-in providers resolve these env vars (Node.js; in browsers pass `apiKey` ex
 | MiniMax (China) | `MINIMAX_CN_API_KEY` |
 | Moonshot AI / Moonshot AI (China) | `MOONSHOT_API_KEY` |
 | Hugging Face | `HF_TOKEN` |
+| Melious | `MELIOUS_API_KEY` |
 | OpenCode Zen / OpenCode Go | `OPENCODE_API_KEY` |
 | Kimi For Coding | `KIMI_API_KEY` |
 | Qwen Token Plan (existing catalog) | `QWEN_TOKEN_PLAN_API_KEY` |

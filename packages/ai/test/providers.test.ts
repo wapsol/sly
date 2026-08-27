@@ -30,10 +30,12 @@ describe("builtin providers", () => {
 		// RETROFIT: three built-in providers remain (anthropic, huggingface, openrouter).
 		expect(all.length).toBeGreaterThan(300);
 
-		// Every surviving provider is static, so each lists models immediately.
+		// Static providers list models immediately; Melious is purely dynamic and
+		// stays empty until its gateway is listed.
 		for (const provider of providers) {
 			const list = models.getModels(provider.id);
-			expect(list.length).toBeGreaterThan(0);
+			if (provider.id === "melious") expect(list).toEqual([]);
+			else expect(list.length).toBeGreaterThan(0);
 			expect(list.every((m) => m.provider === provider.id)).toBe(true);
 		}
 	});

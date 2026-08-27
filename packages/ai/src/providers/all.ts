@@ -5,6 +5,7 @@ import type { Api, Model } from "../types.ts";
 import { anthropicProvider } from "./anthropic.ts";
 import modelDataManifest from "./data/.manifest.json" with { type: "json" };
 import { huggingfaceProvider } from "./huggingface.ts";
+import { meliousProvider } from "./melious.ts";
 import { openrouterProvider } from "./openrouter.ts";
 import { openrouterImagesProvider } from "./openrouter-images.ts";
 
@@ -48,7 +49,7 @@ export function getBuiltinModels<TProvider extends BuiltinProvider>(
 
 /** All built-in providers, freshly constructed. */
 export function builtinProviders(): Provider[] {
-	return [anthropicProvider(), huggingfaceProvider(), openrouterProvider()];
+	return [anthropicProvider(), huggingfaceProvider(), meliousProvider(), openrouterProvider()];
 }
 
 /** A `Models` collection with every built-in provider registered. */

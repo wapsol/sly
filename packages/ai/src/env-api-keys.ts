@@ -79,6 +79,7 @@ function getApiKeyEnvVars(provider: string): readonly string[] | undefined {
 	const envMap: Record<string, string> = {
 		openrouter: "OPENROUTER_API_KEY",
 		huggingface: "HF_TOKEN",
+		melious: "MELIOUS_API_KEY",
 	};
 
 	const envVar = envMap[provider];
