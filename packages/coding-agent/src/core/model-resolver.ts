@@ -21,8 +21,11 @@ export const defaultModelPerProvider: Record<KnownProvider, string> = {
 	anthropic: "claude-opus-4-8",
 	openrouter: "moonshotai/kimi-k2.6",
 	huggingface: "moonshotai/Kimi-K2.6",
-	// Melious has a dynamic catalog; resolve whatever the gateway lists.
-	melious: "auto",
+	// Melious builds its catalog from the gateway at refresh time, so this must be
+	// an id the gateway actually serves -- it is matched against the live list, not
+	// resolved as a wildcard. It must also be *routable*: /v1/models advertises many
+	// ids that fail a completion with "No providers match the specified filters".
+	melious: "qwen3-coder-next",
 };
 
 export interface ScopedModel {

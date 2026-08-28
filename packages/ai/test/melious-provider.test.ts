@@ -7,7 +7,12 @@ function refreshContext(overrides: Partial<RefreshModelsContext> = {}): RefreshM
 	return {
 		allowNetwork: true,
 		signal: new AbortController().signal,
-		publish: async () => true,
+		// The real runtime applies the update after persisting; a publish stub that
+		// only returns true leaves getModels() empty and hides mapping bugs.
+		publish: async (publication) => {
+			publication.update?.();
+			return true;
+		},
 		...overrides,
 	} as RefreshModelsContext;
 }
@@ -69,6 +74,37 @@ describe("melious provider", () => {
 			const small = models[1];
 			expect(small.name).toBe("melious-small");
 			expect(small.cost).toEqual({ input: 0.5, output: 1.5, cacheRead: 0, cacheWrite: 0 });
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
+	it("drops embedding, speech, image and guard models from the listing", async () => {
+		const original = globalThis.fetch;
+		globalThis.fetch = (async () =>
+			Response.json({
+				data: [
+					{ id: "kimi-k2.7-code" },
+					{ id: "qwen3-coder-next" },
+					{ id: "bge-m3" },
+					{ id: "multilingual-e5-large" },
+					{ id: "qwen3-embedding-8b" },
+					{ id: "paraphrase-multilingual-mpnet" },
+					{ id: "whisper-large-v3" },
+					{ id: "faster-whisper-large-v3" },
+					{ id: "voxtral-small-24b-2507" },
+					{ id: "flux-2-dev" },
+					{ id: "qwen-image" },
+					{ id: "qwen3guard-gen-8b" },
+				],
+			})) as typeof globalThis.fetch;
+
+		try {
+			const provider = meliousProvider();
+			await provider.refreshModels?.(refreshContext({ credential: { type: "api_key", key: "test-melious-key" } }));
+			// Melious serves every modality from one endpoint and reports none of it,
+			// so the non-chat ids are excluded by name or they land in the model picker.
+			expect(provider.getModels().map((model) => model.id)).toEqual(["kimi-k2.7-code", "qwen3-coder-next"]);
 		} finally {
 			globalThis.fetch = original;
 		}

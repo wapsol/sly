@@ -375,27 +375,49 @@ Content`,
 		});
 
 		it("should ignore context file candidates that are directories", async () => {
-			mkdirSync(join(cwd, "AGENTS.override.md"));
-			mkdirSync(join(cwd, "AGENTS.md"));
-			writeFileSync(join(cwd, "CLAUDE.md"), "Fallback instructions");
+			mkdirSync(join(cwd, "sly.override.md"));
+			mkdirSync(join(cwd, "sly.md"));
+			writeFileSync(join(cwd, "AGENTS.md"), "Fallback instructions");
 			const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 			const loader = new DefaultResourceLoader({ cwd, agentDir });
 			await loader.reload();
 
 			expect(loader.getAgentsFiles().agentsFiles).toContainEqual({
-				path: join(cwd, "CLAUDE.md"),
+				path: join(cwd, "AGENTS.md"),
 				content: "Fallback instructions",
 			});
-			expect(consoleError).not.toHaveBeenCalledWith(expect.stringContaining(join(cwd, "AGENTS.md")));
-			expect(consoleError).not.toHaveBeenCalledWith(expect.stringContaining(join(cwd, "AGENTS.override.md")));
+			expect(consoleError).not.toHaveBeenCalledWith(expect.stringContaining(join(cwd, "sly.md")));
+			expect(consoleError).not.toHaveBeenCalledWith(expect.stringContaining(join(cwd, "sly.override.md")));
 			consoleError.mockRestore();
+		});
+
+		it("should prefer the brand context file over AGENTS.md in the same directory", async () => {
+			writeFileSync(join(cwd, "sly.md"), "brand instructions");
+			writeFileSync(join(cwd, "AGENTS.md"), "agents instructions");
+
+			const loader = new DefaultResourceLoader({ cwd, agentDir });
+			await loader.reload();
+
+			// One context file per directory, and the brand's own file leads the list.
+			expect(loader.getAgentsFiles().agentsFiles).toEqual([
+				{ path: join(cwd, "sly.md"), content: "brand instructions" },
+			]);
+		});
+
+		it("should not load CLAUDE.md", async () => {
+			writeFileSync(join(cwd, "CLAUDE.md"), "instructions for a different agent");
+
+			const loader = new DefaultResourceLoader({ cwd, agentDir });
+			await loader.reload();
+
+			expect(loader.getAgentsFiles().agentsFiles).toEqual([]);
 		});
 
 		it("should skip context file discovery when noContextFiles is true", async () => {
 			writeFileSync(join(cwd, "AGENTS.override.md"), "# Override Guidelines\n\nBe helpful.");
 			writeFileSync(join(cwd, "AGENTS.md"), "# Project Guidelines\n\nBe helpful.");
-			writeFileSync(join(cwd, "CLAUDE.md"), "# Claude Guidelines\n\nBe helpful.");
+			writeFileSync(join(cwd, "sly.md"), "# Sly Guidelines\n\nBe helpful.");
 
 			const loader = new DefaultResourceLoader({ cwd, agentDir, noContextFiles: true });
 			await loader.reload();
@@ -1005,12 +1027,12 @@ export default function(pi: ExtensionAPI) {
 		});
 
 		it("should only skip the same filename, not a differently named context file", () => {
-			// The repo tracks CLAUDE.md; the worktree adds an AGENTS.md, which
-			// loadContextFileFromDir prefers. The main repo's CLAUDE.md is nobody's
+			// The repo tracks AGENTS.md; the worktree adds a sly.md, which
+			// loadContextFileFromDir prefers. The main repo's AGENTS.md is nobody's
 			// duplicate, so dropping it would lose its content entirely.
 			const { main, worktree, worktreeSrc } = setupNestedWorktree();
-			writeFileSync(join(main, "CLAUDE.md"), "main repo instructions");
-			writeFileSync(join(worktree, "AGENTS.md"), "worktree instructions");
+			writeFileSync(join(main, "AGENTS.md"), "main repo instructions");
+			writeFileSync(join(worktree, "sly.md"), "worktree instructions");
 
 			const files = loadProjectContextFiles({ cwd: worktreeSrc, agentDir });
 

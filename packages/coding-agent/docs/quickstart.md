@@ -98,9 +98,9 @@ Sly loads context files at startup. Add an `AGENTS.md` file to tell it how to wo
 Sly loads:
 
 - `~/.sly/agent/AGENTS.md` for global instructions
-- `AGENTS.md` or `CLAUDE.md` from parent directories and the current directory
+- `sly.md` or `AGENTS.md` from parent directories and the current directory
 
-If a directory contains `AGENTS.override.md`, Sly loads it instead of `AGENTS.md` or `CLAUDE.md` from that directory.
+Each directory contributes its first match of `sly.override.md`, `sly.md`, `AGENTS.override.md`, `AGENTS.md`. `CLAUDE.md` is not read.
 
 Restart sly, or run `/reload`, after changing context files.
 

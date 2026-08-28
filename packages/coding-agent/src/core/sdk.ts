@@ -219,6 +219,34 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			modelRuntime,
 		});
 		model = result.model;
+		// RETROFIT: session startup refreshes catalogs offline, which is right for
+		// providers that ship a generated catalog but leaves a provider that builds
+		// its catalog from its own gateway (Melious) with nothing on a first-ever
+		// run -- an empty models store and no network means no models at all, and
+		// the user just sees "No models available". One bounded networked refresh,
+		// only when the offline pass found nothing, makes the first run work; the
+		// store then serves every later start offline.
+		if (!model && process.env.SLY_OFFLINE === undefined) {
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 15_000);
+			try {
+				await modelRuntime.refresh({ allowNetwork: true, signal: controller.signal });
+				const retry = await findInitialModel({
+					scopedModels: [],
+					isContinuing: hasExistingSession,
+					defaultProvider: settingsManager.getDefaultProvider(),
+					defaultModelId: settingsManager.getDefaultModel(),
+					defaultThinkingLevel: settingsManager.getDefaultThinkingLevel(),
+					modelThinkingLevels: settingsManager.getAllModelThinkingLevels(),
+					modelRuntime,
+				});
+				model = retry.model;
+			} catch {
+				// Leave the fallback message below to report the empty catalog.
+			} finally {
+				clearTimeout(timeout);
+			}
+		}
 		if (!model) {
 			modelFallbackMessage = formatNoModelsAvailableMessage();
 		} else if (modelFallbackMessage) {

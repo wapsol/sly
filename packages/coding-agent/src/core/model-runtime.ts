@@ -149,6 +149,8 @@ export class ModelRuntime implements Models {
 	private availabilityErrorSeq = 0;
 	private readonly providerAvailabilitySeq = new Map<string, number>();
 	private availabilityError: string | undefined;
+	/** RETROFIT: last refresh's per-provider failures, surfaced through getError(). */
+	private refreshErrors = new Map<string, string>();
 	private readonly credentialOperations = new Map<string, Promise<unknown>>();
 
 	private constructor(
@@ -180,9 +182,20 @@ export class ModelRuntime implements Models {
 				? new FileModelsStore(options.modelsStorePath ?? join(dirname(modelsPath), "models-store.json"))
 				: new InMemoryCodingAgentModelsStore());
 		const builtinModelDataGeneratedAt = builtinProviderCatalog.getBuiltinModelDataGeneratedAt();
+		// RETROFIT: a provider that already defines refreshModels owns its catalog and
+		// must not be wrapped -- withRemoteCatalog REPLACES refreshModels with a fetch
+		// against the remote catalog service, which silently defeats any dynamic
+		// provider (Melious lists its own models, and the service has no entry for it;
+		// the 404 path persists an empty catalog behind a 4h gate, so the failure looks
+		// exactly like "this provider has no models"). Upstream special-cased its one
+		// dynamic provider by id; keying off refreshModels covers every future one.
 		const providers = builtinProviderCatalog
 			.builtinProviders()
-			.map((provider) => withRemoteCatalog(provider, options.catalogBaseUrl, builtinModelDataGeneratedAt));
+			.map((provider) =>
+				provider.refreshModels
+					? provider
+					: withRemoteCatalog(provider, options.catalogBaseUrl, builtinModelDataGeneratedAt),
+			);
 		const runtime = new ModelRuntime(
 			credentials,
 			config,
@@ -415,6 +428,9 @@ export class ModelRuntime implements Models {
 			errors.push(`Provider "${providerId}": ${error}`);
 		}
 		if (this.availabilityError) errors.push(`Availability refresh: ${this.availabilityError}`);
+		for (const [providerId, error] of this.refreshErrors) {
+			errors.push(`Provider "${providerId}" model refresh: ${error}`);
+		}
 		return errors.length > 0 ? errors.join("\n\n") : undefined;
 	}
 
@@ -711,6 +727,12 @@ export class ModelRuntime implements Models {
 				// Availability errors are recorded by the latest pass; refreshed models remain usable.
 			}
 		}
+		// RETROFIT: remember why a catalog is empty. Every caller of refresh() on the
+		// startup path discards this result, so a provider that fails to list its
+		// models (a rejected key, an unreachable gateway) was indistinguishable from
+		// a provider that legitimately has none -- the user saw only "No models
+		// available". getError() now reports it alongside the models.json errors.
+		this.refreshErrors = new Map([...errors].map(([providerId, error]) => [providerId, error.message]));
 		return { aborted: result.aborted || (options.signal?.aborted ?? false), errors };
 	}
 

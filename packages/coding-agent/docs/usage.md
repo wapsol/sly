@@ -98,13 +98,13 @@ See [Sessions](sessions.md) and [Compaction](compaction.md) for details.
 
 ## Context Files
 
-Sly loads `AGENTS.md` or `CLAUDE.md` at startup from:
+Sly loads `sly.md` or `AGENTS.md` at startup from:
 
 - `~/.sly/agent/AGENTS.md` for global instructions
 - parent directories, walking up from the current working directory
 - the current directory
 
-If a directory contains `AGENTS.override.md`, Sly loads it instead of `AGENTS.md` or `CLAUDE.md` from that directory. Context files from other directories still layer normally.
+Each directory contributes one context file, the first of `sly.override.md`, `sly.md`, `AGENTS.override.md`, `AGENTS.md`. A directory holding both `sly.md` and `AGENTS.md` contributes `sly.md` only. Context files from other directories still layer normally. `CLAUDE.md` is not read.
 
 Use context files for project conventions, commands, safety rules, and preferences. Disable loading with `--no-context-files` or `-nc`.
 
@@ -228,7 +228,7 @@ Built-in tools: `read`, `bash`, `powershell` (Windows), `edit`, `write`, `grep`,
 | `--no-prompt-templates` | Disable prompt template discovery |
 | `--theme <path>` | Load a theme; repeatable |
 | `--no-themes` | Disable theme discovery |
-| `--no-context-files`, `-nc` | Disable `AGENTS.md` and `CLAUDE.md` discovery |
+| `--no-context-files`, `-nc` | Disable `sly.md` and `AGENTS.md` discovery |
 
 Combine `--no-*` with explicit flags to load exactly what you need, ignoring settings. Example:
 

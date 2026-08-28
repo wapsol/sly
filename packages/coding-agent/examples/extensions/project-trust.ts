@@ -10,7 +10,7 @@
  *
  *   sly -e packages/coding-agent/examples/extensions/project-trust.ts
  *
- * Try it in a project containing .sly, AGENTS.md/CLAUDE.md, or .agents/skills.
+ * Try it in a project containing .sly, sly.md/AGENTS.md, or .agents/skills.
  */
 
 import type { ExtensionAPI, ProjectTrustEventResult } from "@earendil-works/pi-coding-agent";
