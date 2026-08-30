@@ -1,6 +1,6 @@
 {
 	"name": "@earendil-works/pi-ai",
-	"version": "0.84.3",
+	"version": "0.84.4",
 	"description": "Unified LLM API with automatic model discovery and provider configuration",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -57,7 +57,7 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.91.1",
-		"@earendil-works/pi-telemetry": "^0.84.3",
+		"@earendil-works/pi-telemetry": "^0.84.4",
 		"http-proxy-agent": "7.0.2",
 		"https-proxy-agent": "7.0.6",
 		"openai": "6.40.0",
