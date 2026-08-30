@@ -2,6 +2,7 @@ import { accessSync, constants, existsSync, readFileSync, realpathSync } from "f
 import { homedir } from "os";
 import { basename, dirname, join, resolve, sep, win32 } from "path";
 import { fileURLToPath } from "url";
+import { ensureConfigDirMigrated } from "./config-dir-migration.ts";
 import { spawnProcessSync } from "./utils/child-process.ts";
 import { normalizePath } from "./utils/paths.ts";
 import { stripBom } from "./utils/text.ts";
@@ -526,6 +527,12 @@ export function getAgentDir(): string {
 	if (envDir) {
 		return expandTildePath(envDir);
 	}
+	// Before returning, not from runMigrations(): main.ts builds a
+	// SettingsManager first and the `auth` subcommands exit before migrations
+	// run at all, so a /login would write a fresh auth.json into the new
+	// directory and the "only migrate into an absent target" guard would then
+	// strand the real credentials permanently.
+	ensureConfigDirMigrated(CONFIG_DIR_NAME);
 	return join(homedir(), CONFIG_DIR_NAME, "agent");
 }
 

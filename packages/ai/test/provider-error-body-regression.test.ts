@@ -26,10 +26,6 @@ class FakeAPIError extends Error {
 	}
 }
 
-const bedrockMock = vi.hoisted(() => ({
-	sendError: undefined as unknown,
-}));
-
 const openaiMock = vi.hoisted(() => ({
 	// Default parsed body; individual tests may override before invoking.
 	parsedBody: { error: "blocked by gateway WAF" } as unknown,
@@ -48,42 +44,6 @@ vi.mock("openai", () => {
 		responses = { create: throwingCreate };
 	}
 	return { default: FakeOpenAI };
-});
-
-vi.mock("@aws-sdk/client-bedrock-runtime", () => {
-	class BedrockRuntimeServiceException extends Error {}
-
-	class BedrockRuntimeClient {
-		middlewareStack = { add: () => {} };
-		send(): Promise<never> {
-			return Promise.reject(bedrockMock.sendError);
-		}
-	}
-
-	class ConverseStreamCommand {
-		readonly input: unknown;
-		constructor(input: unknown) {
-			this.input = input;
-		}
-	}
-
-	return {
-		BedrockRuntimeClient,
-		BedrockRuntimeServiceException,
-		ConverseStreamCommand,
-		StopReason: {
-			END_TURN: "end_turn",
-			STOP_SEQUENCE: "stop_sequence",
-			MAX_TOKENS: "max_tokens",
-			MODEL_CONTEXT_WINDOW_EXCEEDED: "model_context_window_exceeded",
-			TOOL_USE: "tool_use",
-		},
-		CachePointType: { DEFAULT: "default" },
-		CacheTTL: { ONE_HOUR: "ONE_HOUR" },
-		ConversationRole: { ASSISTANT: "assistant", USER: "user" },
-		ImageFormat: { JPEG: "jpeg", PNG: "png", GIF: "gif", WEBP: "webp" },
-		ToolResultStatus: { ERROR: "error", SUCCESS: "success" },
-	};
 });
 
 const context: Context = {
