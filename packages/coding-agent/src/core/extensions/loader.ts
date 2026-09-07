@@ -21,7 +21,7 @@ import { createJiti } from "jiti/static";
 import * as _bundledTypebox from "typebox";
 import * as _bundledTypeboxCompile from "typebox/compile";
 import * as _bundledTypeboxValue from "typebox/value";
-import { CONFIG_DIR_NAME, getAgentDir, isBunBinary } from "../../config.ts";
+import { CONFIG_DIR_NAME, getAgentDir, isBunBinary, isBundledNode } from "../../config.ts";
 // NOTE: This import works because loader.ts exports are NOT re-exported from index.ts,
 // avoiding a circular dependency. Extensions can import from @earendil-works/pi-coding-agent.
 import * as _bundledSlyCodingAgent from "../../index.ts";
@@ -70,7 +70,7 @@ const VIRTUAL_MODULES: Record<string, unknown> = {
 	"@mariozechner/pi-ai/compat": _bundledSlyAiCompat,
 	"@mariozechner/pi-ai/oauth": _bundledSlyAiOauth,
 	"@mariozechner/pi-ai/providers/all": _bundledSlyAiProviders,
-	"@mariozechner/sly-coding-agent": _bundledSlyCodingAgent,
+	"@mariozechner/pi-coding-agent": _bundledSlyCodingAgent,
 };
 
 const require = createRequire(import.meta.url);
@@ -78,8 +78,6 @@ const require = createRequire(import.meta.url);
 const isNodeSeaBinary =
 	("sea" in process.features && process.features.sea === true) ||
 	process.getBuiltinModule("node:sea")?.isSea() === true;
-declare const SLY_BUNDLED_NODE: boolean;
-const isBundledNode = typeof SLY_BUNDLED_NODE !== "undefined" && SLY_BUNDLED_NODE;
 const isTypeScriptSourceRuntime = !isBunBinary && path.extname(fileURLToPath(import.meta.url)) === ".ts";
 
 /**
@@ -128,7 +126,7 @@ function getAliases(): Record<string, string> {
 		"@earendil-works/pi-ai/compat": piAiCompatEntry,
 		"@earendil-works/pi-ai/oauth": piAiOauthEntry,
 		"@earendil-works/pi-ai": piAiCompatEntry,
-		"@mariozechner/sly-coding-agent": piCodingAgentEntry,
+		"@mariozechner/pi-coding-agent": piCodingAgentEntry,
 		"@mariozechner/pi-agent-core": piAgentCoreEntry,
 		"@mariozechner/pi-tui": piTuiEntry,
 		"@mariozechner/pi-ai/providers/all": piAiProvidersEntry,

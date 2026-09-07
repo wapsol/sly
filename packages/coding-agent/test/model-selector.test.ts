@@ -1,5 +1,6 @@
-import type { TUI } from "@earendil-works/pi-tui";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { setKeybindings, type TUI } from "@earendil-works/pi-tui";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { KeybindingsManager } from "../src/core/keybindings.ts";
 import { ModelSelectorComponent } from "../src/modes/interactive/components/model-selector.ts";
 import { initTheme } from "../src/modes/interactive/theme/theme.ts";
 import { stripAnsi } from "../src/utils/ansi.ts";
@@ -16,9 +17,36 @@ describe("model selector", () => {
 		initTheme("dark");
 	});
 
+	beforeEach(() => {
+		setKeybindings(new KeybindingsManager());
+	});
+
 	afterEach(() => {
 		harness?.cleanup();
 		harness = undefined;
+	});
+
+	it("uses the configured save binding", async () => {
+		setKeybindings(new KeybindingsManager({ "app.models.save": "ctrl+r" }));
+		harness = await createHarness();
+		const currentModel = harness.getModel()!;
+		const saveDefault = vi.fn();
+		const selector = new ModelSelectorComponent(
+			createFakeTui(),
+			currentModel,
+			harness.session.modelRuntime,
+			[],
+			() => {},
+			() => {},
+			undefined,
+			saveDefault,
+		);
+
+		expect(stripAnsi(selector.render(120).join("\n"))).toContain("Ctrl+R to set as default");
+		selector.handleInput("\x13");
+		expect(saveDefault).not.toHaveBeenCalled();
+		selector.handleInput("\x12");
+		expect(saveDefault).toHaveBeenCalledWith(currentModel);
 	});
 
 	it("lists every catalog that failed to refresh", async () => {

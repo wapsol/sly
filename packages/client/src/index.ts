@@ -1,18 +1,12 @@
-export { SlyClient } from "./client.ts";
-export {
-	SlyClientDisposedError,
-	SlyDisconnectedError,
-	SlyServerError,
-	SlySessionDetachedError,
-	SlySessionOwnershipError,
-} from "./errors.ts";
-export type { AcquireSessionOptions, SessionLease, SessionLeaseMode, SlySessionHandle } from "./session-handle.ts";
+export { Client, createClientServiceTransport } from "./client.ts";
+export { ClientDisposedError, DisconnectedError, ServerError } from "./errors.ts";
 export type { ByteTransport, ByteTransportFactory, ByteTransportHandlers } from "./transport.ts";
 export type {
+	AttachmentChangeListener,
+	ClientOptions,
 	ConnectionState,
 	ConnectionStateChange,
-	CreateSessionOptions,
 	ListenerErrorHandler,
-	SlyClientOptions,
+	ServiceSubscription,
 	Unsubscribe,
 } from "./types.ts";

@@ -10,7 +10,12 @@ const codingAgentDir = join(repoRoot, "packages/coding-agent");
 const rootLockfilePath = join(repoRoot, "package-lock.json");
 const shrinkwrapPath = join(codingAgentDir, "npm-shrinkwrap.json");
 const internalPackagePrefix = "@earendil-works/pi-";
+const internalPackageNames = new Set(["@earendil-works/chord"]);
+// RETROFIT: @google/genai and its protobufjs dependency were dropped with the Google
+// provider, so their entries no longer match anything and the generator rejects a stale
+// allowlist. Re-add an entry only if a kept provider's SDK brings an install script back.
 const allowedInstallScriptPackages = new Map([
+	["esbuild@0.28.1", "postinstall selects and verifies the platform-specific esbuild binary"],
 ]);
 
 const args = new Set(process.argv.slice(2));
@@ -134,7 +139,7 @@ function getInternalWorkspaces(lockPackages) {
 		if (!lockPath.startsWith("packages/") || lockPath.includes("/node_modules/") || !entry.name || !entry.version) {
 			continue;
 		}
-		if (!entry.name.startsWith(internalPackagePrefix)) {
+		if (!entry.name.startsWith(internalPackagePrefix) && !internalPackageNames.has(entry.name)) {
 			continue;
 		}
 

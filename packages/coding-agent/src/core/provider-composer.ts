@@ -185,6 +185,15 @@ function applyAllowModels(models: Model<Api>[], config: ModelsJsonProvider): Mod
 	return filtered;
 }
 
+function findModelDefaults(models: readonly Model<Api>[], modelId: string, api?: Api): Model<Api> | undefined {
+	return (
+		models.find((model) => model.id === modelId) ??
+		(api ? models.find((model) => model.api === api) : undefined) ??
+		models.find((model) => model.api === "openai-completions") ??
+		models[0]
+	);
+}
+
 function applyModelsJson(
 	providerId: string,
 	baseModels: readonly Model<Api>[],
@@ -219,9 +228,9 @@ function applyModelsJson(
 	const models = applyAllowModels(composed, config);
 	for (const definition of config.models ?? []) {
 		const existingIndex = models.findIndex((model) => model.id === definition.id);
-		// Defaults come from the unfiltered list: an allow-list narrows what the picker
-		// offers, it must not change what an explicit definition inherits.
-		const defaults = models[existingIndex] ?? composed.find((model) => model.id === definition.id) ?? composed[0];
+		// Search the unfiltered list: an allow-list narrows what the picker offers, it
+		// must not change what an explicit definition inherits.
+		const defaults = findModelDefaults(composed, definition.id, definition.api ?? config.api);
 		const model = modelFromJson(providerId, definition, config, defaults);
 		if (existingIndex >= 0) models[existingIndex] = model;
 		else models.push(model);
@@ -239,7 +248,7 @@ function applyExtension(
 		return config.baseUrl ? models.map((model) => ({ ...model, baseUrl: config.baseUrl! })) : [...models];
 	}
 	return config.models.map((definition) => {
-		const defaults = models.find((model) => model.id === definition.id) ?? models[0];
+		const defaults = findModelDefaults(models, definition.id, definition.api ?? config.api);
 		const api = definition.api ?? config.api ?? defaults?.api;
 		if (!api) {
 			throw new Error(

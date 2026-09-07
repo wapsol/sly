@@ -12,8 +12,12 @@ const rootLockfilePath = join(repoRoot, "package-lock.json");
 const outputPackageJsonPath = join(outputDir, "package.json");
 const outputLockfilePath = join(outputDir, "package-lock.json");
 const internalPackagePrefix = "@earendil-works/pi-";
+const internalPackageNames = new Set(["@earendil-works/chord"]);
 const installPackageName = "@earendil-works/pi-coding-agent-install";
+// RETROFIT: see the matching note in generate-coding-agent-shrinkwrap.mjs -- the Google
+// provider's SDK and its protobufjs dependency went with the provider cull.
 const allowedInstallScriptPackages = new Map([
+	["esbuild@0.28.1", "postinstall selects and verifies the platform-specific esbuild binary"],
 ]);
 
 const args = new Set(process.argv.slice(2));
@@ -141,7 +145,7 @@ function getInternalWorkspaces(lockPackages) {
 		if (!lockPath.startsWith("packages/") || lockPath.includes("/node_modules/") || !entry.name || !entry.version) {
 			continue;
 		}
-		if (!entry.name.startsWith(internalPackagePrefix)) {
+		if (!entry.name.startsWith(internalPackagePrefix) && !internalPackageNames.has(entry.name)) {
 			continue;
 		}
 
@@ -292,7 +296,11 @@ function validateGeneratedFiles(installerPackageJson, installLock, internalNames
 		if (entry.dev || entry.devOptional || entry.extraneous) {
 			errors.push(`${lockPath || "root"} contains dev/extraneous metadata`);
 		}
-		if (packageName?.startsWith(internalPackagePrefix) && entry.version !== installerPackageJson.version) {
+		if (
+			packageName !== undefined &&
+			(packageName.startsWith(internalPackagePrefix) || internalPackageNames.has(packageName)) &&
+			entry.version !== installerPackageJson.version
+		) {
 			errors.push(`${lockPath} internal package version ${entry.version} does not match ${installerPackageJson.version}`);
 		}
 		if (entry.hasInstallScript) {

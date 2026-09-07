@@ -1,48 +1,26 @@
-import type { JsonValue, ProtocolError, ProtocolErrorCode } from "@earendil-works/pi-protocol";
+import type { ProtocolError, ProtocolErrorCode } from "@earendil-works/pi-protocol";
 
-export class SlyServerError extends Error {
+export class ServerError extends Error {
 	readonly code: ProtocolErrorCode;
-	readonly details: JsonValue | undefined;
 
 	constructor(error: ProtocolError) {
 		super(error.message);
-		this.name = "SlyServerError";
+		this.name = "ServerError";
 		this.code = error.code;
-		this.details = error.details;
 	}
 }
 
-export class SlyDisconnectedError extends Error {
-	constructor(message = "Sly client is disconnected") {
-		super(message);
-		this.name = "SlyDisconnectedError";
+export class DisconnectedError extends Error {
+	constructor(message = "Client is disconnected", cause?: Error) {
+		super(message, cause === undefined ? undefined : { cause });
+		this.name = "DisconnectedError";
 	}
 }
 
-export class SlyClientDisposedError extends Error {
+export class ClientDisposedError extends Error {
 	constructor() {
-		super("Sly client is disposed");
-		this.name = "SlyClientDisposedError";
-	}
-}
-
-export class SlySessionOwnershipError extends Error {
-	readonly sessionId: string;
-
-	constructor(sessionId: string, message: string) {
-		super(message);
-		this.name = "SlySessionOwnershipError";
-		this.sessionId = sessionId;
-	}
-}
-
-export class SlySessionDetachedError extends Error {
-	readonly sessionId: string;
-
-	constructor(sessionId: string) {
-		super(`Session ${sessionId} is not attached`);
-		this.name = "SlySessionDetachedError";
-		this.sessionId = sessionId;
+		super("Client is disposed");
+		this.name = "ClientDisposedError";
 	}
 }
 
@@ -50,7 +28,7 @@ export function toError(error: unknown): Error {
 	return error instanceof Error ? error : new Error(String(error));
 }
 
-export function toDisconnectedError(error: unknown): SlyDisconnectedError {
+export function toDisconnectedError(error: unknown): DisconnectedError {
 	const cause = toError(error);
-	return cause instanceof SlyDisconnectedError ? cause : new SlyDisconnectedError(cause.message);
+	return cause instanceof DisconnectedError ? cause : new DisconnectedError(cause.message, cause);
 }
