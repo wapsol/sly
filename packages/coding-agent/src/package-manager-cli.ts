@@ -28,6 +28,7 @@ import {
 	VERSION,
 } from "./config.ts";
 import type { InlineExtension } from "./core/extensions/types.ts";
+import { ModelConfig } from "./core/model-config.ts";
 import { ModelRuntime } from "./core/model-runtime.ts";
 import { DefaultPackageManager } from "./core/package-manager.ts";
 import { type AppMode, resolveProjectTrusted } from "./core/project-trust.ts";
@@ -580,13 +581,21 @@ function updateTargetIncludesExtensions(target: UpdateTarget): boolean {
 	return target.type === "all" || target.type === "extensions";
 }
 
-async function refreshModelCatalogs(agentDir: string): Promise<void> {
+/**
+ * Force a network refresh of every model catalog, then report what landed.
+ *
+ * `allowNetwork: true` is passed explicitly so this works under `--offline` /
+ * SLY_OFFLINE, and `force: true` skips the 4-hour remote-catalog throttle.
+ * Backs both `${APP_NAME} update --models` and `${APP_NAME} --refresh-models`.
+ */
+export async function refreshModelCatalogs(agentDir: string): Promise<void> {
+	const modelsPath = join(agentDir, "models.json");
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 15_000);
 	try {
 		const modelRuntime = await ModelRuntime.create({
 			authPath: join(agentDir, "auth.json"),
-			modelsPath: join(agentDir, "models.json"),
+			modelsPath,
 			allowModelNetwork: false,
 			signal: controller.signal,
 		});
@@ -602,10 +611,32 @@ async function refreshModelCatalogs(agentDir: string): Promise<void> {
 			const details = Array.from(result.errors, ([provider, error]) => `${provider}: ${error.message}`).join("; ");
 			throw new Error(`Could not refresh model catalogs: ${details}`);
 		}
+		console.log(chalk.green("Model catalogs refreshed"));
+		await printModelCatalogSummary(modelRuntime, modelsPath);
 	} finally {
 		clearTimeout(timeout);
 	}
-	console.log(chalk.green("Model catalogs refreshed"));
+}
+
+/**
+ * Per-provider model counts, plus any `allowModels` id the refreshed catalog does not
+ * contain. Curation is invisible otherwise -- a stale allow-list silently keeps the full
+ * catalog (see applyAllowModels), and this is the one command where that is worth saying.
+ */
+async function printModelCatalogSummary(modelRuntime: ModelRuntime, modelsPath: string): Promise<void> {
+	const config = await ModelConfig.load(modelsPath);
+	for (const provider of modelRuntime.getProviders()) {
+		const models = modelRuntime.getModels(provider.id);
+		const allowModels = config.getProvider(provider.id)?.allowModels;
+		const suffix = allowModels ? chalk.dim(` (allowModels: ${allowModels.length})`) : "";
+		console.log(`  ${provider.id}: ${models.length} model${models.length === 1 ? "" : "s"}${suffix}`);
+		if (!allowModels) continue;
+		const available = new Set(models.map((model) => model.id));
+		const missing = allowModels.filter((id) => !available.has(id));
+		if (missing.length > 0) {
+			console.log(chalk.yellow(`    not in the refreshed catalog: ${missing.join(", ")}`));
+		}
+	}
 }
 
 function printSelfUpdateUnavailable(

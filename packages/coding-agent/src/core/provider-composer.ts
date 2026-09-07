@@ -165,6 +165,26 @@ function modelFromJson(
 	};
 }
 
+/**
+ * RETROFIT: narrow a provider's catalog to the ids listed in `models.json`.
+ *
+ * Applied on every compose rather than at fetch time, so it holds no matter how the
+ * process was started or what a refresh just wrote to the models store.
+ *
+ * A list that matches nothing is treated as stale, not as "hide everything": a gateway
+ * can rename or retire ids at any time, and an empty picker is a dead install. The full
+ * catalog is kept instead -- `--refresh-models` reports the mismatch, which is the place
+ * a user can act on it. Explicit `models` entries in models.json are exempt; they are
+ * upserted after this filter runs.
+ */
+function applyAllowModels(models: Model<Api>[], config: ModelsJsonProvider): Model<Api>[] {
+	if (!config.allowModels?.length) return models;
+	const allowed = new Set(config.allowModels);
+	const filtered = models.filter((model) => allowed.has(model.id));
+	if (filtered.length === 0 && !config.models?.length) return models;
+	return filtered;
+}
+
 function applyModelsJson(
 	providerId: string,
 	baseModels: readonly Model<Api>[],
@@ -177,6 +197,7 @@ function applyModelsJson(
 	const hasOverrides = config.modelOverrides && Object.keys(config.modelOverrides).length > 0;
 	if (
 		!config.models?.length &&
+		!config.allowModels?.length &&
 		!config.baseUrl &&
 		!config.headers &&
 		!config.compat &&
@@ -186,18 +207,21 @@ function applyModelsJson(
 		config.authHeader === undefined
 	) {
 		throw new Error(
-			`Provider ${providerId}: must specify "baseUrl", "headers", "compat", "modelOverrides", or "models".`,
+			`Provider ${providerId}: must specify "baseUrl", "headers", "compat", "modelOverrides", "allowModels", or "models".`,
 		);
 	}
 
-	const models: Model<Api>[] = baseModels.map((model) => ({
+	const composed: Model<Api>[] = baseModels.map((model) => ({
 		...model,
 		baseUrl: config.oauth === "radius" ? model.baseUrl : (config.baseUrl ?? model.baseUrl),
 		compat: mergeCompat(model.compat, config.compat),
 	}));
+	const models = applyAllowModels(composed, config);
 	for (const definition of config.models ?? []) {
 		const existingIndex = models.findIndex((model) => model.id === definition.id);
-		const defaults = existingIndex >= 0 ? models[existingIndex] : models[0];
+		// Defaults come from the unfiltered list: an allow-list narrows what the picker
+		// offers, it must not change what an explicit definition inherits.
+		const defaults = models[existingIndex] ?? composed.find((model) => model.id === definition.id) ?? composed[0];
 		const model = modelFromJson(providerId, definition, config, defaults);
 		if (existingIndex >= 0) models[existingIndex] = model;
 		else models.push(model);

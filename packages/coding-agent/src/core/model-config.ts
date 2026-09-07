@@ -204,6 +204,12 @@ const ProviderConfigSchema = Type.Object({
 	authHeader: Type.Optional(Type.Boolean()),
 	models: Type.Optional(Type.Array(ModelDefinitionSchema)),
 	modelOverrides: Type.Optional(Type.Record(Type.String(), ModelOverrideSchema)),
+	// RETROFIT: curation that survives the machine. A dynamic provider refetches its
+	// catalog from the network, so any narrowing done at fetch time lives in the
+	// environment of whoever launched the process (Melious: MELIOUS_MODELS) and is lost
+	// the moment the binary is started another way. `allowModels` is read from
+	// models.json on every compose, so a forced refresh cannot widen the picker back out.
+	allowModels: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { minItems: 1 })),
 });
 
 const ModelsConfigSchema = Type.Object({

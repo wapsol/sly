@@ -363,6 +363,24 @@ describe("parseArgs", () => {
 		});
 	});
 
+	describe("--refresh-models flag", () => {
+		test("parses --refresh-models flag", () => {
+			const result = parseArgs(["--refresh-models"]);
+			expect(result.refreshModels).toBe(true);
+			expect(result.unknownFlags.size).toBe(0);
+		});
+
+		test("combines with --offline", () => {
+			const result = parseArgs(["--offline", "--refresh-models"]);
+			expect(result.offline).toBe(true);
+			expect(result.refreshModels).toBe(true);
+		});
+
+		test("is unset by default", () => {
+			expect(parseArgs([]).refreshModels).toBeUndefined();
+		});
+	});
+
 	describe("--tui-mode flag", () => {
 		test.each(["regular", "fullscreen"] as const)("parses %s mode", (mode) => {
 			const result = parseArgs(["--tui-mode", mode]);

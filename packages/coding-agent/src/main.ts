@@ -65,7 +65,12 @@ import { builtInExtensions } from "./extensions/index.ts";
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
 import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.ts";
 import { initTheme, stopThemeWatcher } from "./modes/interactive/theme/theme.ts";
-import { cleanupManagedInstall, handleConfigCommand, handlePackageCommand } from "./package-manager-cli.ts";
+import {
+	cleanupManagedInstall,
+	handleConfigCommand,
+	handlePackageCommand,
+	refreshModelCatalogs,
+} from "./package-manager-cli.ts";
 import { isLocalPath, normalizePath, resolvePath } from "./utils/paths.ts";
 import { cleanupWindowsSelfUpdateQuarantine } from "./utils/windows-self-update.ts";
 
@@ -614,6 +619,19 @@ export async function main(args: string[], options?: MainOptions) {
 	if (parsed.version) {
 		console.log(VERSION);
 		process.exit(0);
+	}
+
+	// Runs before the session pipeline so it stays a cheap one-shot, and deliberately
+	// ignores offlineMode above: refreshModelCatalogs passes allowNetwork explicitly.
+	if (parsed.refreshModels) {
+		try {
+			await refreshModelCatalogs(getAgentDir());
+			process.exit(0);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : "Unknown model catalog refresh error";
+			console.error(chalk.red(`Error: ${message}`));
+			process.exit(1);
+		}
 	}
 
 	if (parsed.export) {

@@ -7,6 +7,7 @@ Sly supports subscription-based providers via OAuth and API key providers via en
 - [Subscriptions](#subscriptions)
 - [API Keys](#api-keys)
 - [Auth File](#auth-file)
+- [Melious](#melious)
 - [Cloud Providers](#cloud-providers)
 - [llama.cpp](#llamacpp)
 - [Custom Providers](#custom-providers)
@@ -295,6 +296,48 @@ export GOOGLE_CLOUD_LOCATION=us-central1
 ```
 
 Or set `GOOGLE_APPLICATION_CREDENTIALS` to a service account key file.
+
+### Keeping curation across machines
+
+`MELIOUS_MODELS` is read from the process environment when the catalog is **fetched**.
+That makes it easy to lose: launch the binary a way that does not export it -- a fresh
+install, a direct `node dist/bundle/cli.js`, a shell that already had `MELIOUS_API_KEY`
+set -- and the next refresh persists everything the gateway advertises.
+
+Two places survive that, both on disk:
+
+- **`allowModels` in `models.json`** narrows a provider every time its models are
+  composed, whatever refreshed the catalog:
+
+  ```json
+  {
+    "providers": {
+      "melious": { "allowModels": ["kimi-k2.7-code", "glm-5.3", "deepseek-v4-pro"] }
+    }
+  }
+  ```
+
+  A list that matches nothing is treated as stale rather than as "hide everything": the
+  full catalog is kept, so a renamed id cannot leave an empty model picker.
+  `sly --refresh-models` reports which allowed ids the catalog no longer has.
+  Models defined explicitly under `models` are exempt from the filter.
+
+- **`env` on the auth.json credential** (see [Auth File](#auth-file)) sets
+  `MELIOUS_MODELS` for the process, which filters at fetch time so the narrowed catalog
+  is what gets persisted.
+
+Use `allowModels` when the question is "what should this agent offer"; use the auth-file
+`env` when the question is "what should be stored at all".
+
+### Refreshing on demand
+
+```bash
+sly --refresh-models     # force a network refresh, print per-provider counts, exit
+sly update --models      # the same refresh, as a package subcommand
+```
+
+Both ignore `--offline`/`SLY_OFFLINE` and the 4-hour remote-catalog throttle.
+Run one after editing `MELIOUS_MODELS` or `allowModels` to see the resulting catalog.
 
 ## llama.cpp
 
