@@ -81,6 +81,19 @@ interface MeliousModelsResponse {
 		max_output_tokens?: number;
 		reasoning?: boolean;
 		pricing?: { prompt?: number | string; completion?: number | string };
+		/** Only present with `?include_meta=true`. */
+		_meta?: {
+			type?: string;
+			context_length?: number;
+			max_output_tokens?: number | null;
+			reasoning_type?: string;
+			pricing?: {
+				input_cost_per_million_eur?: number;
+				output_cost_per_million_eur?: number;
+				cache_read_cost_per_million_eur?: number;
+				currency?: string;
+			};
+		};
 	}>;
 }
 
@@ -93,33 +106,45 @@ function toNumber(value: number | string | undefined): number {
  * Map one `/v1/models` entry onto a `Model`, or drop it when it is not a chat
  * model.
  *
- * In practice Melious sends only `id`, `object`, `created` and `owned_by` -- no
- * context window, no pricing, no modality -- so every other field is a fallback.
- * They are chosen to be safe when wrong: cost 0 shows an unpriced model rather
- * than a misleading price, and the context window is deliberately conservative.
- * Tune either per model with `modelOverrides` in the agent's `models.json`.
+ * The bare listing sends only `id`, `object`, `created` and `owned_by`. Asking for
+ * `?include_meta=true` adds a `_meta` block carrying real pricing, context length
+ * and reasoning type, so those are used when present.
+ *
+ * Rates are per MILLION tokens, which is exactly what `calculateCost` expects
+ * (`models.ts`: `rates.input / 1000000 * tokens`) -- no conversion. Note Melious
+ * quotes EUR, not USD.
+ *
+ * The remaining fallbacks are chosen to be safe when wrong: cost 0 shows an
+ * unpriced model rather than a misleading price, and the context window is
+ * deliberately conservative. Tune per model with `modelOverrides` in the agent's
+ * `models.json`.
  */
 function toModel(
 	entry: NonNullable<MeliousModelsResponse["data"]>[number],
 	baseUrl: string,
 ): Model<"openai-completions"> | undefined {
 	if (!entry?.id || !isChatModel(entry.id)) return undefined;
+	const meta = entry._meta;
+	const metaPrice = meta?.pricing;
 	return {
 		id: entry.id,
 		name: entry.display_name ?? entry.id,
 		api: "openai-completions",
 		provider: "melious",
 		baseUrl,
+		// NOT derived from _meta.reasoning_type: flagging a model as reasoning makes
+		// openai-completions send the system prompt as role "developer", which the
+		// Melious gateway rejects with 400 "Invalid role 'developer'".
 		reasoning: entry.reasoning ?? false,
 		input: ["text"],
 		cost: {
-			input: toNumber(entry.pricing?.prompt),
-			output: toNumber(entry.pricing?.completion),
-			cacheRead: 0,
+			input: metaPrice?.input_cost_per_million_eur ?? toNumber(entry.pricing?.prompt),
+			output: metaPrice?.output_cost_per_million_eur ?? toNumber(entry.pricing?.completion),
+			cacheRead: metaPrice?.cache_read_cost_per_million_eur ?? 0,
 			cacheWrite: 0,
 		},
-		contextWindow: entry.context_window ?? entry.context_length ?? 128_000,
-		maxTokens: entry.max_output_tokens ?? entry.max_tokens ?? 8_192,
+		contextWindow: entry.context_window ?? meta?.context_length ?? entry.context_length ?? 128_000,
+		maxTokens: entry.max_output_tokens ?? meta?.max_output_tokens ?? entry.max_tokens ?? 8_192,
 	};
 }
 
@@ -130,7 +155,9 @@ async function fetchMeliousModels(
 	const key = context.credential?.type === "api_key" ? context.credential.key : process.env[MELIOUS_API_KEY_ENV];
 	if (!key) return [];
 
-	const response = await fetch(`${baseUrl}/models`, {
+	// include_meta adds pricing, context length and reasoning type. Without it the
+	// catalog loads with cost 0 and every turn reports as free.
+	const response = await fetch(`${baseUrl}/models?include_meta=true`, {
 		headers: { Authorization: `Bearer ${key}` },
 		signal: context.signal,
 	});

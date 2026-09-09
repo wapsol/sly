@@ -74,6 +74,11 @@ const RETRYABLE_PROVIDER_ERROR_PATTERN = buildProviderErrorPattern([
 	"stream ended before message_stop",
 	"stream ended before a terminal response event",
 	"http2 request did not get a response",
+	// Melious wraps a mid-stream upstream failure as "The model provider
+	// encountered a streaming error. Please try again." -- no HTTP status, and
+	// "Please try again." lacks the word "request" that the retry-guidance
+	// patterns below require, so nothing above matched it.
+	"streaming error",
 
 	// Provider-requested retry delay cap failures should flow through the outer
 	// retry policy so callers can surface/abort the backoff (#1123).
