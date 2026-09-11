@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { RefreshModelsContext } from "../src/models.ts";
 import { builtinProviders } from "../src/providers/all.ts";
-import { DEFAULT_MELIOUS_BASE_URL, meliousProvider } from "../src/providers/melious.ts";
+import {
+	DEFAULT_MELIOUS_BASE_URL,
+	DEFAULT_MELIOUS_CONTEXT_WINDOW,
+	DEFAULT_MELIOUS_MAX_TOKENS,
+	MELIOUS_MODEL_SPECS,
+	meliousProvider,
+} from "../src/providers/melious.ts";
 
 function refreshContext(overrides: Partial<RefreshModelsContext> = {}): RefreshModelsContext {
 	return {
@@ -145,6 +151,61 @@ describe("melious provider", () => {
 		} finally {
 			globalThis.fetch = original;
 			if (previousEnv !== undefined) process.env.MELIOUS_API_KEY = previousEnv;
+		}
+	});
+});
+
+describe("melious model capacities", () => {
+	/** List the given bare ids through the provider and return the mapped models. */
+	async function listModels(entries: Array<Record<string, unknown>>) {
+		const original = globalThis.fetch;
+		globalThis.fetch = (async () => Response.json({ data: entries })) as typeof globalThis.fetch;
+		try {
+			const provider = meliousProvider();
+			await provider.refreshModels?.(refreshContext({ credential: { type: "api_key", key: "k" } }));
+			return provider.getModels();
+		} finally {
+			globalThis.fetch = original;
+		}
+	}
+
+	it("resolves a listed id from the shipped spec table", async () => {
+		// The gateway sends nothing but the id, which is the whole reason the table exists.
+		const [glm, mistral] = await listModels([{ id: "glm-5.3-flash" }, { id: "mistral-small-3.2-24b-instruct" }]);
+		expect(glm.contextWindow).toBe(1_000_000);
+		expect(glm.maxTokens).toBe(128_000);
+		expect(mistral.contextWindow).toBe(131_072);
+		expect(mistral.maxTokens).toBe(16_384);
+	});
+
+	it("keeps the conservative output cap when the table states no maxTokens", async () => {
+		const [gemma] = await listModels([{ id: "gemma-4-31b" }]);
+		expect(gemma.contextWindow).toBe(262_144);
+		expect(gemma.maxTokens).toBe(DEFAULT_MELIOUS_MAX_TOKENS);
+	});
+
+	it("assumes a large context for an id the table does not list", async () => {
+		const [unknown] = await listModels([{ id: "some-model-shipped-tomorrow" }]);
+		expect(unknown.contextWindow).toBe(DEFAULT_MELIOUS_CONTEXT_WINDOW);
+		expect(unknown.maxTokens).toBe(DEFAULT_MELIOUS_MAX_TOKENS);
+	});
+
+	it("lets the listing override the table if the gateway ever reports capacities", async () => {
+		// glm-5.3-flash is in the table at 1M; the gateway saying otherwise must win, so
+		// a future API change takes effect without editing the table.
+		const [glm] = await listModels([{ id: "glm-5.3-flash", context_window: 32_768, max_output_tokens: 4_096 }]);
+		expect(glm.contextWindow).toBe(32_768);
+		expect(glm.maxTokens).toBe(4_096);
+	});
+
+	it("agrees with the spec table for every id it lists", async () => {
+		const ids = Object.keys(MELIOUS_MODEL_SPECS);
+		const models = await listModels(ids.map((id) => ({ id })));
+		expect(models).toHaveLength(ids.length);
+		for (const model of models) {
+			const spec = MELIOUS_MODEL_SPECS[model.id];
+			expect(model.contextWindow).toBe(spec.contextWindow);
+			expect(model.maxTokens).toBe(spec.maxTokens ?? DEFAULT_MELIOUS_MAX_TOKENS);
 		}
 	});
 });
