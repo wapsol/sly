@@ -1,167 +1,122 @@
 # Quickstart
 
-This page gets you from install to a useful first sly session.
+Sly runs in your terminal and works with files on your machine. To use it, you need access to a model through a supported provider. This can be a subscription, an API key, or a local model.
 
-## Install
+For native Windows setup, read [Windows Setup](windows.md). For Android, read [Termux Setup](termux.md).
 
-Sly is distributed as an npm package:
+## 1. Install Sly
+
+On macOS or Linux, you can use the installer:
+
+```bash
+curl -fsSL https://pi.dev/install.sh | sh
+```
+
+Alternatively, install Sly from npm. This requires Node.js 22.19 or newer:
 
 ```bash
 npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 ```
 
-`--ignore-scripts` disables dependency lifecycle scripts during install. Sly does not require install scripts for normal npm installs.
+Sly does not require dependency lifecycle scripts for a normal npm installation.
 
-### Uninstall
-
-Use the package manager that installed pi. The curl installer uses npm globally, so curl and npm installs are removed with npm:
+Verify the installation:
 
 ```bash
-# curl installer or npm install -g
-npm uninstall -g @earendil-works/pi-coding-agent
-
-# pnpm
-pnpm remove -g @earendil-works/pi-coding-agent
-
-# Yarn
-yarn global remove @earendil-works/pi-coding-agent
-
-# Bun
-bun uninstall -g @earendil-works/pi-coding-agent
+sly --version
 ```
 
-Uninstalling sly leaves settings, credentials, sessions, and installed sly packages in `~/.sly/agent/`.
+## 2. Start Sly
 
-Then start sly in the project directory you want it to work on:
+Change to the folder you want Sly to work with, then start it:
 
 ```bash
-cd /path/to/project
+cd /path/to/folder
 sly
 ```
 
-## Authenticate
+The working folder helps Sly discover relevant files, instructions, and configuration. Sly also uses it to group saved sessions.
 
-Sly can use subscription providers through `/login`, or API-key providers through environment variables or the auth file.
+<p align="center"><img src="images/interactive-mode.png" alt="Sly running in a terminal with a conversation, input editor, and status footer" width="750"></p>
 
-### Option 1: subscription login
+The interface shows your conversation, an editor for prompts and commands, and a footer with the current folder, model, and session status. See [Use Sly in the terminal](usage.md) to learn how to add files, run commands, direct ongoing work, and manage results.
 
-Start sly and run:
+## 3. Choose a model
+
+A **model** generates Sly's responses. A **provider** is the service or account Sly uses to access that model.
+
+In Sly, run:
 
 ```text
 /login
 ```
 
-Then select a provider. Built-in subscription logins include Claude Pro/Max, ChatGPT Plus/Pro (Codex), and GitHub Copilot.
+Choose a provider, then follow the prompts to use a subscription or store an API key. Run `/model` afterward if you want to select a different available model.
 
-### Option 2: API key
+See [Choose a model and provider](models.md) for supported providers, environment-variable authentication, local models, and custom endpoints.
 
-Set an API key before launching pi:
+## 4. Give Sly a task
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-sly
-```
+Sly shows each file read, search, command, and edit it performs. It does not ask before every tool call.
 
-You can also run `/login` and select an API-key provider to store the key in `~/.sly/agent/auth.json`.
-
-See [Providers](providers.md) for all supported providers, environment variables, and cloud-provider setup.
-
-## First session
-
-Once sly starts, type a request and press Enter:
+Enter a task that matches your work, for example:
 
 ```text
-Summarize this repository and tell me how to run its checks.
+Summarize @meeting-notes.md and save the action items to action-items.md.
 ```
-
-By default, sly gives the model four tools:
-
-- `read` - read files
-- `write` - create or overwrite files
-- `edit` - patch files
-- `bash` - run shell commands
-
-Additional built-in read-only tools (`grep`, `find`, `ls`) are available through tool options. Sly runs in your current working directory and can modify files there. Use git or another checkpointing workflow if you want easy rollback.
-
-## Give sly project instructions
-
-Sly loads context files at startup. Add an `AGENTS.md` file to tell it how to work in a project:
-
-```markdown
-# Project Instructions
-
-- Run `npm run check` after code changes.
-- Do not run production migrations locally.
-- Keep responses concise.
-```
-
-Sly loads:
-
-- `~/.sly/agent/AGENTS.md` for global instructions
-- `sly.md` or `AGENTS.md` from parent directories and the current directory
-
-Each directory contributes its first match of `sly.override.md`, `sly.md`, `AGENTS.override.md`, `AGENTS.md`. `CLAUDE.md` is not read.
-
-Restart sly, or run `/reload`, after changing context files.
-
-## Common things to try
-
-### Reference files
-
-Type `@` in the editor to fuzzy-search files, or pass files on the command line:
-
-```bash
-sly @README.md "Summarize this"
-sly @src/app.ts @src/app.test.ts "Review these together"
-```
-
-Images or text can be pasted with Ctrl+V (Alt+V on Windows); images can also be dragged into supported terminals.
-
-### Run shell commands
-
-In interactive mode:
 
 ```text
-!npm run lint
+Explain how this repository is structured and how to run its checks.
 ```
 
-The command output is sent to the model. Use `!!command` to run a command without adding its output to the model context.
+```text
+Compare @previous.csv with @current.csv and summarize the important changes.
+```
 
-### Switch models
+Type `@` in the editor to search for a file instead of entering its full path. When Sly finishes, review its response and any changed files. Use version control or backups for important work. For untrusted or unattended work, use a container or another sandbox. See [Security](security.md).
 
-Use `/model` or Ctrl+L to choose a model for the current session. Press Ctrl+S in the model picker to save the highlighted model as the startup default. Use `/thinking` to choose a thinking level for the current session, or Ctrl+S in that picker to save the startup default thinking level. Use Shift+Tab to cycle thinking level. Use Ctrl+P / Shift+Ctrl+P to cycle through scoped models.
+## Continue later
 
-### Continue later
-
-Sessions are saved automatically:
+Sly saves sessions automatically. Exit Sly, then resume the most recent session for the same working folder with:
 
 ```bash
-sly -c                  # Continue most recent session
-sly -r                  # Browse previous sessions
-sly --name "my task"    # Set session display name at startup
-sly --session <path|id> # Open a specific session
+sly --continue
 ```
 
-Inside sly, use `/resume`, `/new`, `/tree`, `/fork`, and `/clone` to manage sessions.
-
-### Non-interactive mode
-
-For one-shot prompts:
-
-```bash
-sly -p "Summarize this codebase"
-cat README.md | sly -p "Summarize this text"
-sly -p @screenshot.png "What's in this image?"
-```
-
-Use `--mode json` for JSON event output or `--mode rpc` for process integration.
+Use `/resume` to choose another saved session. See [Continue or branch a session](sessions.md) for session naming, branching, compaction, export, and sharing.
 
 ## Next steps
 
-- [Using Sly](usage.md) - interactive mode, slash commands, sessions, context files, and CLI reference.
-- [Providers](providers.md) - authentication and model setup.
-- [Settings](settings.md) - global and project configuration.
-- [Keybindings](keybindings.md) - shortcuts and customization.
-- [Sly Packages](packages.md) - install shared extensions, skills, prompts, and themes.
+- [Use Sly interactively](usage.md) to learn input, commands, shortcuts, and queued messages.
+- [Add instructions](configuration.md#context-files) that Sly should follow whenever it works in a folder.
+- [Choose a model and provider](models.md).
 
-Platform notes: [Windows](windows.md), [Termux](termux.md), [tmux](tmux.md), [Terminal setup](terminal-setup.md), [Shell aliases](shell-aliases.md).
+### Choose how to customize Sly
+
+Start with the least powerful mechanism that meets your need:
+
+| Need | Start with |
+|---|---|
+| Give Sly persistent instructions for a folder | [`AGENTS.md`](configuration.md#context-files) |
+| Reuse a prompt from the `/` menu | [Prompt template](prompt-templates.md) |
+| Add task-specific instructions and supporting files | [Skill](skills.md) |
+| Add executable tools, commands, or event handlers | [Extension](extensions.md) |
+| Build a custom terminal component | [Terminal UI](tui.md) |
+| Connect an unsupported model service | [Custom provider](custom-provider.md) |
+| Install or distribute several resources | [Sly package](packages.md) |
+
+## Uninstall Sly
+
+If you installed Sly with npm, run:
+
+```bash
+npm uninstall -g @earendil-works/pi-coding-agent
+```
+
+If you used the installer, run it again and choose **Uninstall Sly**:
+
+```bash
+curl -fsSL https://pi.dev/install.sh | sh
+```
+
+Neither method removes configuration, credentials, sessions, or installed Sly packages from `~/.sly/agent/`.

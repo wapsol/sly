@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { stream as streamAnthropic } from "../src/api/anthropic-messages.ts";
 import { stream as streamOpenAICompletions } from "../src/api/openai-completions.ts";
-import { getModel, stream } from "../src/compat.ts";
-import type { Context, Model } from "../src/types.ts";
+import { getModel, normalizeContext, stream } from "../src/compat.ts";
+import type { Model } from "../src/types.ts";
 
 class PayloadCaptured extends Error {
 	constructor() {
@@ -38,10 +38,10 @@ describe("Cache Retention (SLY_CACHE_RETENTION)", () => {
 		}
 	});
 
-	const context: Context = {
+	const context = normalizeContext({
 		systemPrompt: "You are a helpful assistant.",
 		messages: [{ role: "user", content: "Hello", timestamp: Date.now() }],
-	};
+	});
 
 	describe("Anthropic Provider", () => {
 		it.skipIf(!process.env.ANTHROPIC_API_KEY)(

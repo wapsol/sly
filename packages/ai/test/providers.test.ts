@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { AuthContext } from "../src/auth/types.ts";
+import { getModel as getCompatModel, getModels as getCompatModels } from "../src/compat.ts";
 import { createModels } from "../src/models.ts";
-import { builtinModels, builtinProviders } from "../src/providers/all.ts";
+import {
+	builtinModels,
+	builtinProviders,
+	getAllBuiltinModels,
+	getBuiltinClassifierModel,
+	getBuiltinClassifierModels,
+	getBuiltinImageModel,
+	getBuiltinImageModels,
+	getBuiltinModel,
+	getBuiltinModels,
+} from "../src/providers/all.ts";
 import { anthropicProvider } from "../src/providers/anthropic.ts";
-import type { Context } from "../src/types.ts";
 
 function fakeAuthContext(env: Record<string, string>, files: string[] = []): AuthContext {
 	return {
@@ -13,8 +23,6 @@ function fakeAuthContext(env: Record<string, string>, files: string[] = []): Aut
 }
 
 const _neverAbortedSignal = new AbortController().signal;
-
-const _context: Context = { messages: [{ role: "user", content: "hi", timestamp: Date.now() }] };
 
 describe("builtin providers", () => {
 	it("builtinModels registers every builtin provider with models", async () => {
@@ -38,6 +46,21 @@ describe("builtin providers", () => {
 			else expect(list.length).toBeGreaterThan(0);
 			expect(list.every((m) => m.provider === provider.id)).toBe(true);
 		}
+	});
+
+	it("returns empty results for unknown provider ids", () => {
+		const unknownProvider = "not-a-provider" as never;
+		const unknownModel = "x" as never;
+
+		expect(getBuiltinModel(unknownProvider, unknownModel)).toBeUndefined();
+		expect(getBuiltinImageModel(unknownProvider, unknownModel)).toBeUndefined();
+		expect(getBuiltinClassifierModel(unknownProvider, unknownModel)).toBeUndefined();
+		expect(getBuiltinModels(unknownProvider)).toEqual([]);
+		expect(getBuiltinImageModels(unknownProvider)).toEqual([]);
+		expect(getBuiltinClassifierModels(unknownProvider)).toEqual([]);
+		expect(getAllBuiltinModels(unknownProvider)).toEqual([]);
+		expect(getCompatModel(unknownProvider, unknownModel)).toBeUndefined();
+		expect(getCompatModels(unknownProvider)).toEqual([]);
 	});
 
 	it("resolves Anthropic bearer auth from env with auth token precedence", async () => {

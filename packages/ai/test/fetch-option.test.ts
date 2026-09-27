@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { streamSimple as streamAnthropic } from "../src/api/anthropic-messages.ts";
-import type { Api, Context, FetchFunction, Model } from "../src/types.ts";
+import type { Api, FetchFunction, Model } from "../src/types.ts";
+import { normalizeContext } from "../src/utils/transcript.ts";
 
-const context: Context = {
+const context = normalizeContext({
 	messages: [{ role: "user", content: "hello", timestamp: 1 }],
-};
+});
 
 function createModel<TApi extends Api>(api: TApi): Model<TApi> {
 	return {

@@ -459,7 +459,11 @@ if (process.platform !== "win32") fs.chmodSync(slyPath, 0o755);
 
 	it("refreshes only model catalogs with update --models", async () => {
 		const refresh = vi.fn(async () => ({ aborted: false, errors: new Map<string, Error>() }));
-		const create = vi.spyOn(ModelRuntime, "create").mockResolvedValue({ refresh } as unknown as ModelRuntime);
+		// printModelCatalogSummary (the fork's allowModels reporting) reads the
+		// catalog back off the runtime, so the stub has to answer those too.
+		const create = vi
+			.spyOn(ModelRuntime, "create")
+			.mockResolvedValue({ refresh, getProviders: () => [], getModels: () => [] } as unknown as ModelRuntime);
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 

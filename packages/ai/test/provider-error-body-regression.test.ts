@@ -11,7 +11,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stream as streamOpenAICompletions } from "../src/api/openai-completions.ts";
-import type { Context, Model } from "../src/types.ts";
+import type { Model } from "../src/types.ts";
+import { normalizeContext } from "../src/utils/transcript.ts";
 
 // openai SDK APIError shape: "<status> status code (no body)" message, the
 // parsed body kept on `.error`.
@@ -46,11 +47,11 @@ vi.mock("openai", () => {
 	return { default: FakeOpenAI };
 });
 
-const context: Context = {
+const context = normalizeContext({
 	systemPrompt: "",
 	messages: [{ role: "user", content: [{ type: "text", text: "hi" }], timestamp: 0 }],
 	tools: [],
-};
+});
 
 const completionsModel: Model<"openai-completions"> = {
 	id: "test-model",
