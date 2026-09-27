@@ -66,6 +66,7 @@ export const MELIOUS_MODEL_SPECS: Readonly<Record<string, { contextWindow: numbe
 	"glm-5.3": { contextWindow: 1_000_000 },
 	"glm-5.3-flash": { contextWindow: 1_000_000, maxTokens: 128_000 },
 	// Deepseek -- V4 is the other 1M family.
+	"deepseek-v4.1-flash": { contextWindow: 1_000_000, maxTokens: 384_000 },
 	"deepseek-v4-pro": { contextWindow: 1_000_000, maxTokens: 384_000 },
 	"deepseek-v4-pro-0813": { contextWindow: 1_000_000, maxTokens: 384_000 },
 	"deepseek-v4-flash-0731": { contextWindow: 1_000_000, maxTokens: 384_000 },

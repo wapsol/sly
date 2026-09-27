@@ -25,7 +25,7 @@ export const defaultModelPerProvider: Partial<Record<KnownProvider, string>> = {
 	// an id the gateway actually serves -- it is matched against the live list, not
 	// resolved as a wildcard. It must also be *routable*: /v1/models advertises many
 	// ids that fail a completion with "No providers match the specified filters".
-	melious: "qwen3-coder-next",
+	melious: "glm-5.3-flash",
 };
 
 export interface ScopedModel {
