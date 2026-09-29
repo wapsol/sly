@@ -12,9 +12,10 @@ The agent directory is shown as `<agent-dir>` below. Set its location with the `
 |---|---|
 | `<agent-dir>/settings.json` | User-level [settings](settings.md), including preferences, defaults, resource paths, and Sly package declarations. |
 | `<agent-dir>/keybindings.json` | Custom terminal UI and application [keybindings](keybindings.md). |
+| `<agent-dir>/mcp.json` | [MCP servers](mcp.md) available in every project. |
 | `<agent-dir>/models.json` | [Compatible endpoints, models, and model overrides](models.md#configure-a-compatible-endpoint). |
 | `<agent-dir>/auth.json` | Saved API keys and OAuth credentials. |
-| `<agent-dir>/pi.override.md`, `pi.md`, `AGENTS.override.md`, `AGENTS.md`, or `AGENTS.MD` | User instructions applied across working directories. |
+| `<agent-dir>/AGENTS.override.md`, `AGENTS.md`, `AGENTS.MD`, `CLAUDE.md`, or `CLAUDE.MD` | User instructions applied across working directories. |
 | `<agent-dir>/SYSTEM.md` | Replaces Sly’s default system prompt. |
 | `<agent-dir>/APPEND_SYSTEM.md` | Adds instructions to Sly’s system prompt. |
 | `<agent-dir>/extensions/` | User [extensions](extensions.md). |
@@ -27,6 +28,7 @@ The agent directory is shown as `<agent-dir>` below. Set its location with the `
 | Path | Responsibility |
 |---|---|
 | `.sly/settings.json` | Project-level [settings](settings.md), resource paths, and Sly package declarations. |
+| `.sly/mcp.json` | Project [MCP servers](mcp.md). |
 | `.sly/SYSTEM.md` | Replaces the system prompt for the project. |
 | `.sly/APPEND_SYSTEM.md` | Adds project-specific instructions to the system prompt. |
 | `.sly/extensions/` | Project extensions. |
@@ -40,6 +42,6 @@ For `SYSTEM.md` and `APPEND_SYSTEM.md`, the trusted project file takes precedenc
 
 Context files are separate from project `.sly` configuration. Sly loads them from the agent directory, the working directory, and its parent directories. A context file applies whenever Sly runs in its directory or anywhere below it.
 
-Each directory contributes its first match of `pi.override.md`, `pi.md`, `AGENTS.override.md`, `AGENTS.md`. `CLAUDE.md` is not read. An `AGENTS.override.md` replaces `AGENTS.md` only in the same directory. It does not suppress context files from the agent directory or other directories.
+An `AGENTS.override.md` replaces `AGENTS.md` or `CLAUDE.md` only in the same directory. It does not suppress context files from the agent directory or other directories.
 
 Context-file discovery does not require project trust.

@@ -24,4 +24,4 @@ export function piLogoLines(): [string, string] {
 }
 
 /** One-line attribution: sly is a fork of the MIT-licensed pi coding agent. */
-export const PI_ATTRIBUTION = "Built on pi by earendil-works — MIT licensed";
+export const UPSTREAM_ATTRIBUTION = "Built on pi by earendil-works — MIT licensed";

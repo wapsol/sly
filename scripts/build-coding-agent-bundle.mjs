@@ -147,6 +147,7 @@ for (const entry of [
 	join(codingAgentDistDir, "index.js"),
 	join(codingAgentDistDir, "rpc-entry.js"),
 	join(codingAgentDistDir, "utils", "image-resize-worker.js"),
+	join(codingAgentDistDir, "extensions", "codemode", "worker.js"),
 	join(aiDistDir, "auth", "oauth", "anthropic.js"),
 ]) {
 	if (!existsSync(entry)) {
@@ -175,6 +176,7 @@ const mainResult = await build({
 // two-loader agreement check has nothing left to compare.
 const oauthLoaderOutput = findContainingOutput(mainResult.metafile, "packages/ai/dist/auth/oauth/load.js");
 const imageResizeOutput = findContainingOutput(mainResult.metafile, "packages/coding-agent/dist/utils/image-resize.js");
+const configOutput = findContainingOutput(mainResult.metafile, "packages/coding-agent/dist/config.js");
 
 // These implementations are reached through variable-specifier imports or a
 // worker URL, so the main bundle cannot follow them. Emit one self-contained
@@ -184,6 +186,7 @@ const lazyResult = await build({
 	entryNames: "[name]",
 	entryPoints: {
 		anthropic: join(aiDistDir, "auth", "oauth", "anthropic.js"),
+		"codemode-worker": join(codingAgentDistDir, "extensions", "codemode", "worker.js"),
 		"image-resize-worker": join(codingAgentDistDir, "utils", "image-resize-worker.js"),
 		openrouter: join(aiDistDir, "auth", "oauth", "openrouter.js"),
 	},
@@ -194,6 +197,10 @@ const lazyResult = await build({
 const imageResizeWorkerOutput = resolve(dirname(oauthLoaderOutput), "image-resize-worker.js");
 if (dirname(imageResizeOutput) !== dirname(imageResizeWorkerOutput)) {
 	throw new Error("Image resize implementation and worker were emitted into different directories");
+}
+// getCodemodeWorkerUrl() in config.ts resolves the worker next to its own chunk.
+if (dirname(configOutput) !== dirname(oauthLoaderOutput)) {
+	throw new Error("config.ts and the codemode worker were emitted into different directories");
 }
 
 validateExternalImports([mainResult.metafile, lazyResult.metafile]);

@@ -1,7 +1,7 @@
 # Sly
 
 Sly is a self-extensible coding agent for the terminal. It is a fork of the MIT-licensed
-[pi](https://github.com/earendil-works/pi) agent harness by earendil-works, reduced to four
+[sly](https://github.com/earendil-works/pi) agent harness by earendil-works, reduced to four
 model providers: Melious, Anthropic, Hugging Face and OpenRouter.
 
 ## Requirements
@@ -103,10 +103,10 @@ launched it. For stronger boundaries, see
 
 ## License
 
-MIT. Sly is built on [pi](https://github.com/earendil-works/pi) by Mario Zechner
+MIT. Sly is built on [sly](https://github.com/earendil-works/pi) by Mario Zechner
 (earendil-works), also MIT licensed.
 
-- Copyright (c) 2025 Mario Zechner (earendil-works, the pi coding agent)
+- Copyright (c) 2025 Mario Zechner (earendil-works, the sly coding agent)
 - Copyright (c) 2026- Ashant Chalasani
 
 See [LICENSE](LICENSE) for the full text.
