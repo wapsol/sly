@@ -103,5 +103,10 @@ launched it. For stronger boundaries, see
 
 ## License
 
-MIT. Sly is built on [pi](https://github.com/earendil-works/pi) by earendil-works, also MIT
-licensed — see [LICENSE](LICENSE).
+MIT. Sly is built on [pi](https://github.com/earendil-works/pi) by Mario Zechner
+(earendil-works), also MIT licensed.
+
+- Copyright (c) 2025 Mario Zechner (earendil-works, the pi coding agent)
+- Copyright (c) 2026- Ashant Chalasani
+
+See [LICENSE](LICENSE) for the full text.
