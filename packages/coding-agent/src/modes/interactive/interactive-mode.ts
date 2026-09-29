@@ -152,7 +152,7 @@ import {
 	formatAuthSelectorProviderType,
 	OAuthSelectorComponent,
 } from "./components/oauth-selector.ts";
-import { piLogoLines } from "./components/pi-logo.ts";
+import { PI_ATTRIBUTION, piLogoLines } from "./components/pi-logo.ts";
 import { ScopedModelsSelectorComponent } from "./components/scoped-models-selector.ts";
 import { SessionSelectorComponent } from "./components/session-selector.ts";
 import { SettingsSelectorComponent } from "./components/settings-selector.ts";
@@ -966,7 +966,7 @@ export class InteractiveMode {
 			// its second line the first line of key hints.
 			const withLogo = (hints: string) => {
 				const [top, bottom] = piLogoLines();
-				return `${top} ${theme.fg("dim", `v${this.version}`)}\n${bottom} ${hints}`;
+				return `${top} ${theme.fg("dim", `v${this.version}`)}\n${bottom}\n${theme.fg("dim", PI_ATTRIBUTION)}\n${hints}`;
 			};
 
 			// Build startup instructions using keybinding hint helpers

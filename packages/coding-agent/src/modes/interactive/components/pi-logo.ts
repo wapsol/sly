@@ -1,4 +1,4 @@
-import { backgroundAnsi, foregroundAnsi, rgbColor } from "@earendil-works/pi-tui";
+import { foregroundAnsi, rgbColor } from "@earendil-works/pi-tui";
 import { theme } from "../theme/theme.ts";
 
 const CORAL = rgbColor(228, 138, 122);
@@ -7,20 +7,21 @@ const YELLOW = rgbColor(234, 182, 93);
 const RESET = "\x1b[0m";
 
 /**
- * The sly logo: 4 cells wide and 2 lines tall. Each cell shows two square pixels with half blocks:
+ * The sly logo: the word SLY drawn with half blocks, 11 cells wide and 2 lines tall.
+ * Each letter sits on a 3x4 pixel grid and carries one of pi's three brand colors:
  *
- *   coral coral coral .
- *   blue  .     coral .
- *   blue  blue  .     yellow
- *   blue  .     .     yellow
+ *   S coral   L blue   Y yellow
  *
  * The brand colors stay fixed across themes; they follow the terminal's color mode.
  */
 export function piLogoLines(): [string, string] {
 	const mode = theme.getColorMode();
 	const fg = (color: typeof CORAL) => foregroundAnsi(color, mode);
-	// The fourth cell of the top line is empty, so it is padded to the same width as the bottom line.
-	const top = `${fg(CORAL)}${backgroundAnsi(BLUE, mode)}▀${RESET}${fg(CORAL)}▀█${RESET} `;
-	const bottom = `${fg(BLUE)}█▀${RESET} ${fg(YELLOW)}█${RESET}`;
+	const letter = (color: typeof CORAL, glyphs: string) => `${fg(color)}${glyphs}${RESET}`;
+	const top = [letter(CORAL, "█▀▀"), letter(BLUE, "█  "), letter(YELLOW, "▀▄▀")].join(" ");
+	const bottom = [letter(CORAL, "▄▄█"), letter(BLUE, "█▄▄"), letter(YELLOW, " █ ")].join(" ");
 	return [top, bottom];
 }
+
+/** One-line attribution: sly is a fork of the MIT-licensed pi coding agent. */
+export const PI_ATTRIBUTION = "Built on pi by earendil-works — MIT licensed";
