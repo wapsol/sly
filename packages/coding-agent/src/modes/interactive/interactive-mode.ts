@@ -963,7 +963,7 @@ export class InteractiveMode {
 		// Add header with keybindings from config (unless silenced)
 		if (this.options.verbose || !this.settingsManager.getQuietStartup()) {
 			// Built on demand so the header follows theme changes. The logo's first line carries the version,
-			// its second line the first line of key hints.
+			// the pi attribution sits below the logo, and the key hints follow it.
 			const withLogo = (hints: string) => {
 				const [top, bottom] = piLogoLines();
 				return `${top} ${theme.fg("dim", `v${this.version}`)}\n${bottom}\n${theme.fg("dim", PI_ATTRIBUTION)}\n${hints}`;
