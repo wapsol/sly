@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -181,15 +181,26 @@ const configOutput = findContainingOutput(mainResult.metafile, "packages/coding-
 // These implementations are reached through variable-specifier imports or a
 // worker URL, so the main bundle cannot follow them. Emit one self-contained
 // file per implementation beside the code that resolves it.
+const lazyEntryPoints = {
+	anthropic: join(aiDistDir, "auth", "oauth", "anthropic.js"),
+	"codemode-worker": join(codingAgentDistDir, "extensions", "codemode", "worker.js"),
+	"image-resize-worker": join(codingAgentDistDir, "utils", "image-resize-worker.js"),
+	openrouter: join(aiDistDir, "auth", "oauth", "openrouter.js"),
+};
+
+// Every OAuth flow loaded through importOAuthModule() must have a lazy entry,
+// otherwise the flow fails at runtime with a missing module error.
+const oauthLoadSource = readFileSync(join(repoRoot, "packages", "ai", "src", "auth", "oauth", "load.ts"), "utf8");
+for (const match of oauthLoadSource.matchAll(/importOAuthModule\("\.\/([^"]+)\.ts"\)/g)) {
+	if (!(match[1] in lazyEntryPoints)) {
+		throw new Error(`OAuth flow "${match[1]}" is lazily imported but has no lazy bundle entry`);
+	}
+}
+
 const lazyResult = await build({
 	...commonBuildOptions(),
 	entryNames: "[name]",
-	entryPoints: {
-		anthropic: join(aiDistDir, "auth", "oauth", "anthropic.js"),
-		"codemode-worker": join(codingAgentDistDir, "extensions", "codemode", "worker.js"),
-		"image-resize-worker": join(codingAgentDistDir, "utils", "image-resize-worker.js"),
-		openrouter: join(aiDistDir, "auth", "oauth", "openrouter.js"),
-	},
+	entryPoints: lazyEntryPoints,
 	outdir: dirname(oauthLoaderOutput),
 	splitting: false,
 });
